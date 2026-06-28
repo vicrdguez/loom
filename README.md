@@ -1,7 +1,7 @@
 # Loom
 
 Loom is a small workflow for building software with an AI coding agent. You talk a change through
-until it's clear, write down what it should do, build it test-first, and come out with documentation
+until it's clear, write down what it should do, build it test-first, and open a PR — with documentation
 you didn't have to write as a separate chore. It installs into Claude Code, Codex, and OpenCode as a
 set of skills.
 
@@ -36,11 +36,14 @@ Run `/loom-init` once in a project, then per change:
 |---|---|
 | `/loom-init` | First-time setup: write `docs/loom/project.md` from what's already in the repo, and import an existing OpenSpec tree if there is one. |
 | `/loom-explore` | The thinking. Grill the change, then use `loom-domain` and `loom-design` to sharpen the language and settle the module shapes. |
-| `/loom-propose` | Write the brief: `intent.md` and `behavior.md` (Gherkin), plus `plan.md` and `tasks.md` when the change is big enough to need them. |
-| `/loom-apply` | Build it test-first from the scenarios, update the capability doc, archive the change. |
+| `/loom-propose` | Cut the change branch (a git worktree), then write the brief: `intent.md` and `behavior.md` (Gherkin), plus `plan.md` and `tasks.md` when the change is big enough to need them. |
+| `/loom-apply` | Build it test-first from the scenarios, commit per slice, update the capability doc, and record `acceptance.md` (the human-checkable steps). |
+| `/loom-submit` | Verify, archive, and open a PR. The PR review is the human acceptance gate — merging it accepts the change and lands the archive on `main`. |
 
-`explore` and `propose` are the interactive, think-hard stages. `apply` is the executor, and since
-the decisions are already written down in `plan.md`, you can hand it to a cheaper model.
+`explore` and `propose` are the interactive, think-hard stages. `apply` builds each change in its own
+worktree and `submit` opens the PR, so `apply → submit` can run unattended — even several changes in
+parallel — with the human gate at PR merge. Since the decisions are already written down in `plan.md`,
+`apply` is the part you can hand to a cheaper model.
 
 ### Two skills you can also run on their own
 
@@ -99,7 +102,7 @@ docs/
 └── loom/
     ├── project.md           stack and the test/build/lint commands
     └── changes/
-        ├── <slug>/{intent.md, behavior.md, plan.md?, tasks.md?}
+        ├── <slug>/{intent.md, behavior.md, plan.md?, tasks.md?, acceptance.md}
         └── archive/<date>-<slug>/…
 ```
 

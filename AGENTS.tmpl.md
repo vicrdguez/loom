@@ -7,17 +7,22 @@ drift); the documents are how humans and agents stay oriented.
 
 **Loop** (run `/loom-init` once per project, then per change):
 - `/loom-explore` — grill the change into shared understanding; sharpen `CONTEXT.md`, record ADRs.
-- `/loom-propose` — write the change brief: `intent.md`, `behavior.md` (always); `plan.md`,
-  `tasks.md` (when warranted).
-- `/loom-apply` — build it test-first from the Gherkin scenarios, update the capability doc, archive.
+- `/loom-propose` — cut the change branch (worktree), write the brief: `intent.md`, `behavior.md`
+  (always); `plan.md`, `tasks.md` (when warranted).
+- `/loom-apply` — build it test-first from the Gherkin scenarios, commit per slice, update the
+  capability doc, record `acceptance.md`.
+- `/loom-submit` — verify, archive, and open the PR; the PR review is the human acceptance gate.
 
 **Foundational skills** (composed by the loop, or run standalone — e.g. to ground a brownfield repo):
 `/loom-domain` (sharpen the glossary + ADRs) and `/loom-design` (deep, testable module shapes).
 
 **Where things live:**
-- `docs/loom/changes/<slug>/` — in-flight change (`intent` · `behavior` · `plan?` · `tasks?`).
-- `docs/loom/changes/archive/<date>-<slug>/` — completed changes (history).
-- `docs/loom/project.md` — stack, conventions, test/build/lint commands.
+- `.loom-worktrees/<slug>/` — the change branch's worktree (gitignored); apply and submit run here.
+- `docs/loom/changes/<slug>/` — in-flight change (`intent` · `behavior` · `plan?` · `tasks?` ·
+  `acceptance`).
+- `docs/loom/changes/archive/<date>-<slug>/` — completed changes (history); lands on `main` when the
+  PR merges.
+- `docs/loom/project.md` — stack, conventions, test/build/lint commands, forge config.
 - `docs/capabilities/<name>.md` — **living** documentation of what the system does. Durable.
 - `docs/adr/NNNN-*.md` — architecture decisions. Durable.
 - `CONTEXT.md` — domain glossary. Durable.
@@ -30,6 +35,9 @@ drift); the documents are how humans and agents stay oriented.
 - `CONTEXT.md` is a glossary only (no implementation detail). Offer ADRs sparingly (hard-to-reverse
   AND surprising AND a real trade-off).
 - Decisions are pinned in `plan.md` during propose, so implementation makes no important new ones.
+- The **PR review is the acceptance gate**: `loom-submit` archives on green and opens the PR; merging
+  it accepts the change and lands the archive on `main`. `loom-apply` never touches `main` or remotes.
+- `intent.md` is frozen after propose; post-implementation human checks live in `acceptance.md`.
 
 The `/loom-*` skills are directly invokable and carry the detailed formats.
 <!-- LOOM:END -->
