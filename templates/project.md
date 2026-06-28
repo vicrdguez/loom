@@ -17,5 +17,11 @@ have it synthesized from your existing AGENTS.md / README / manifests, or fill i
 ## Conventions
 - {Code style, naming, directory layout, anything an implementer should follow.}
 
+## Forge
+<!-- loom-submit reads this to open the PR/MR. The token is an ENV VAR, never written here. -->
+- **Host:** {github | codeberg | gitlab | a self-hosted Forgejo/Gitea/GitLab URL}
+- **Repo:** {owner/name}
+- **PR token env var:** {e.g. GH_TOKEN, FORGEJO_TOKEN, GITLAB_TOKEN — set in your shell, not here}
+
 ## Constraints
 - {Performance, compliance, or integration constraints not obvious from the code.}

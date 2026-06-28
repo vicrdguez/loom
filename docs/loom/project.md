@@ -18,5 +18,11 @@ POSIX `sh` installer and Markdown documentation.
 - Keep `install.sh` POSIX `sh` with no language runtime dependency.
 - Use dependency-free shell tests for installer behavior.
 
+## Forge
+<!-- loom-submit reads this to open the PR. The token is an ENV VAR, never written here. -->
+- **Host:** codeberg
+- **Repo:** vicrodriguez/loom
+- **PR token env var:** FORGEJO_TOKEN — set in your shell, not here.
+
 ## Constraints
 - Remote install defaults to Codeberg release archives and must not require Git.
