@@ -1,6 +1,6 @@
 ---
 name: loom-apply
-description: Implement a Loom change test-first — materialize each Gherkin scenario into an idiomatic test, drive it red-green-refactor (testing internal modules at their own seams too), then update the capability doc in place and archive the change. Use when the user says apply, implement, build, or start coding an explored/proposed Loom change.
+description: Implement a Loom change test-first — materialize each Gherkin scenario into an idiomatic test, drive it red-green-refactor (testing internal modules at their own seams too), commit per slice, update the capability doc in place, and record acceptance steps for /loom-submit to ship. Use when the user says apply, implement, build, or start coding an explored/proposed Loom change.
 ---
 
 # loom-apply
@@ -14,6 +14,11 @@ ones — it materializes behavior into tests and code. It's the part you can han
 present). Treat each Gherkin `Scenario` as one test to write. Use the test/build/lint commands from
 `docs/loom/project.md`.
 
+Apply runs **inside the change's worktree** (`.loom-worktrees/<slug>/`). Work the change wherever it
+currently lives — `docs/loom/changes/<slug>/`, or `docs/loom/changes/archive/<date>-<slug>/` if a
+prior submit already archived it (rework); **never move it back**. Apply only ever writes to the
+change branch: **never touch `main`, the archive layout, or git remotes** — that is `/loom-submit`.
+
 ## The TDD loop — vertical slices, one behavior at a time
 
 See [tdd.md](./reference/tdd.md). Never write all tests first then all code (horizontal slicing) —
@@ -25,6 +30,8 @@ that tests imagined behavior. One test → one implementation → repeat.
 3. **Refactor** — only once green: remove duplication and deepen modules
    ([refactoring.md](./reference/refactoring.md); deepening method lives in the `loom-design` skill's
    DEEPENING reference). Tests stay green.
+4. **Commit** — one logical commit for the slice, with a tight message. Per-slice commits are cheap
+   and reworkable (they live on the change branch, not `main`) and they make the eventual PR readable.
 
 Check the task off as each behavior lands.
 
@@ -52,7 +59,11 @@ traceability survives without any tooling. No `.feature` files.
 1. Full suite green; every `intent.md` "Done" line demonstrably met.
 2. **Update `docs/capabilities/<name>.md` in place** — a high-altitude, readable summary of the new
    behavior, linking the tests that enforce it ([capability-doc.md](./reference/capability-doc.md)).
-   Direct editing, not a merge.
-3. **Archive** the change: move `docs/loom/changes/<slug>/` →
-   `docs/loom/changes/archive/<YYYY-MM-DD>-<slug>/` (suffix `-2` on collision).
-4. Report what shipped and which capability docs changed. Suggest `/loom-explore` for the next change.
+   Direct editing, not a merge. Commit it.
+3. **Write `acceptance.md`** in the change dir — the human-checkable residue tests can't cover
+   (visual, UX, "does it render"), learned during implementation. If nothing needs human eyes, say so
+   explicitly. Do **not** edit `intent.md` — it is frozen after propose
+   ([acceptance.md](./reference/acceptance.md)). Commit it.
+4. Confirm every slice is committed on the change branch. Do **not** archive, push, or open a PR — and
+   never touch `main`. That is `/loom-submit`.
+5. Report what shipped and which capability docs changed. Suggest `/loom-submit`.

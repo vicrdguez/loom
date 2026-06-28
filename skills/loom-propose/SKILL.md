@@ -11,7 +11,23 @@ crystal-clear change you may run this without exploring first.)
 
 ## Pick a change id
 
-A short, verb-led kebab slug: `add-order-cancellation`. Create `docs/loom/changes/<slug>/`.
+A short, verb-led kebab slug: `add-order-cancellation`.
+
+## Set up the change branch
+
+Each change is built in isolation on its own branch, so several can run in parallel and each ships as
+one PR. From the `main` checkout, before writing the brief:
+
+1. **Commit durable-doc stragglers.** Any `CONTEXT.md` / ADR edits left in the working tree from
+   `/loom-explore` are durable — commit them to `main` now, so they land independently of this change.
+2. **GC merged worktrees.** Remove any `.loom-worktrees/<other>` whose change has already merged (its
+   `docs/loom/changes/archive/<date>-<other>/` is present on `main`), then delete its branch. Running
+   from `main`, you are never inside the worktree you remove.
+3. **Ensure `.loom-worktrees/` is gitignored** — add the line if it's missing.
+4. **Create the worktree:** `git worktree add .loom-worktrees/<slug> -b <slug>` off up-to-date
+   `main`. Do the rest of propose — and all of apply and submit — **inside that worktree**.
+
+Then create `docs/loom/changes/<slug>/` inside the worktree.
 
 ## Read first
 
