@@ -5,12 +5,9 @@ until it's clear, write down what it should do, build it test-first, and come ou
 you didn't have to write as a separate chore. It installs into Claude Code, Codex, and OpenCode as a
 set of skills.
 
-## It's a remix, not an invention
+**Loom doesn't introduce a new method or invents anything**. It takes ideas that already work and wires them into one bundle you install once.
 
-Loom doesn't introduce a new method. It takes ideas that already work and wires them into one track
-you install once.
-
-The shape of the workflow is borrowed from [OpenSpec](https://github.com/Fission-AI/OpenSpec):
+The shape of the workflow is inspired in [OpenSpec](https://github.com/Fission-AI/OpenSpec):
 propose a change, work it, and keep living documentation of what the system does.
 
 The working habits are Matt Pocock's, from his
@@ -48,7 +45,7 @@ the decisions are already written down in `plan.md`, you can hand it to a cheape
 ### Two skills you can also run on their own
 
 These are used inside the loop, but they stand alone too, which is handy for getting a brownfield
-project on its feet before you adopt the full flow.
+project on its feet before you adopt the full flow. These come almost directly from Matt's skills repo.
 
 | Skill | What it does |
 |---|---|
@@ -109,11 +106,6 @@ docs/
 The glossary, ADRs, and capability docs live outside `docs/loom/`, so `./install.sh --uninstall`
 takes Loom out and leaves all of that, and your tests, where they are.
 
-## Credit
-
-The good ideas here belong to other people. OpenSpec (Fission AI) for the change-and-spec workflow,
-and Matt Pocock for the grilling, domain-modeling, deep-module, and TDD skills. Loom is the
-arrangement of them, nothing more.
 
 ## License
 
