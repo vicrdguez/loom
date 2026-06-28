@@ -1,0 +1,22 @@
+# Project
+
+<!--
+On-demand config for Loom skills (loom-explore reads conventions; loom-apply reads commands).
+Loaded only when a skill needs it, so it stays out of every-session context. Run /loom-init to
+have it synthesized from your existing AGENTS.md / README / manifests, or fill it in by hand.
+-->
+
+## Stack
+POSIX `sh` installer and Markdown documentation.
+
+## Commands
+- **Test:** `sh test/install_test.sh`
+- **Build:** None.
+- **Lint/format:** None configured.
+
+## Conventions
+- Keep `install.sh` POSIX `sh` with no language runtime dependency.
+- Use dependency-free shell tests for installer behavior.
+
+## Constraints
+- Remote install defaults to Codeberg release archives and must not require Git.

@@ -4,6 +4,8 @@
 set -eu
 
 LOOM_VERSION="0.1.0"
+CODEBERG_URL="https://codeberg.org"
+LOOM_REPO="vicrodriguez/loom"
 
 TOOLS="claude,codex,opencode"
 GLOBAL=0
@@ -11,8 +13,14 @@ PROJECT="$PWD"
 UNINSTALL=0
 FORCE=0
 DRYRUN=0
+CLI_REF=""
+LOOM_REF=${LOOM_REF:-}
+REMOTE_TMP=""
 
-SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+case $0 in
+  */*) SCRIPT_DIR=$(CDPATH='' cd -- "${0%/*}" && pwd) ;;
+  *) SCRIPT_DIR=$(pwd) ;;
+esac
 
 usage() {
   cat <<'EOF'
@@ -20,11 +28,13 @@ Loom installer
 
 Usage:
   ./install.sh [options]
+  curl -fsSL https://codeberg.org/vicrodriguez/loom/raw/branch/main/install.sh | sh -s -- [options]
 
 Options:
   --tools LIST     Comma-separated harnesses: claude,codex,opencode (default: all three)
   --global         Install skills into user-level dirs instead of the project
   --project DIR    Target project root (default: current directory)
+  --ref REF        Install an explicit release tag or branch when running remotely
   --uninstall      Remove loom-* skills and the AGENTS.md block (leaves docs/ and CONTEXT.md)
   --force          Overwrite scaffolded files (e.g. docs/loom/project.md) that already exist
   --dry-run        Print what would happen; change nothing
@@ -45,34 +55,162 @@ run() {
 
 say() { printf '%s\n' "$*"; }
 
-# Parse arguments.
-while [ $# -gt 0 ]; do
-  case $1 in
-    --tools) TOOLS=${2:?--tools needs a value}; shift 2 ;;
-    --tools=*) TOOLS=${1#*=}; shift ;;
-    --global) GLOBAL=1; shift ;;
-    --project) PROJECT=${2:?--project needs a value}; shift 2 ;;
-    --project=*) PROJECT=${1#*=}; shift ;;
-    --uninstall) UNINSTALL=1; shift ;;
-    --force) FORCE=1; shift ;;
-    --dry-run) DRYRUN=1; shift ;;
-    --help|-h) usage; exit 0 ;;
-    *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 1 ;;
-  esac
-done
+die() {
+  printf '%s\n' "$*" >&2
+  exit 1
+}
 
-# Validate tools.
-for tool in $(printf '%s' "$TOOLS" | tr ',' ' '); do
-  case $tool in
-    claude|codex|opencode) : ;;
-    *) printf 'Unknown tool: %s (expected claude, codex, or opencode)\n' "$tool" >&2; exit 1 ;;
-  esac
-done
+parse_args() {
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --tools) TOOLS=${2:?--tools needs a value}; shift 2 ;;
+      --tools=*) TOOLS=${1#*=}; shift ;;
+      --global) GLOBAL=1; shift ;;
+      --project) PROJECT=${2:?--project needs a value}; shift 2 ;;
+      --project=*) PROJECT=${1#*=}; shift ;;
+      --ref) CLI_REF=${2:?--ref needs a value}; shift 2 ;;
+      --ref=*) CLI_REF=${1#*=}; shift ;;
+      --uninstall) UNINSTALL=1; shift ;;
+      --force) FORCE=1; shift ;;
+      --dry-run) DRYRUN=1; shift ;;
+      --help|-h) usage; exit 0 ;;
+      *) printf 'Unknown option: %s\n' "$1" >&2; usage >&2; exit 1 ;;
+    esac
+  done
+}
 
-# Canonicalize the project path when it already exists.
-if [ -d "$PROJECT" ]; then
-  PROJECT=$(CDPATH='' cd -- "$PROJECT" && pwd)
-fi
+validate_tools() {
+  for tool in $(printf '%s' "$TOOLS" | tr ',' ' '); do
+    case $tool in
+      claude|codex|opencode) : ;;
+      *) printf 'Unknown tool: %s (expected claude, codex, or opencode)\n' "$tool" >&2; exit 1 ;;
+    esac
+  done
+}
+
+canonicalize_project() {
+  if [ -d "$PROJECT" ]; then
+    PROJECT=$(CDPATH='' cd -- "$PROJECT" && pwd)
+  fi
+}
+
+payload_available() {
+  dir=$1
+  [ -f "$dir/install.sh" ] || return 1
+  [ -f "$dir/AGENTS.tmpl.md" ] || return 1
+  [ -f "$dir/templates/project.md" ] || return 1
+  [ -f "$dir/skills/loom-explore/SKILL.md" ] || return 1
+  [ -f "$dir/skills/loom-propose/SKILL.md" ] || return 1
+  [ -f "$dir/skills/loom-apply/SKILL.md" ] || return 1
+}
+
+download_to_stdout() {
+  url=$1
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$url"
+    return
+  fi
+  if command -v wget >/dev/null 2>&1; then
+    wget -qO- "$url"
+    return
+  fi
+  die "Remote install requires curl or wget. Install one of them, or clone Loom and run ./install.sh."
+}
+
+latest_stable_ref_from_metadata() {
+  metadata=$1
+  tag=
+  draft=false
+  prerelease=false
+  seen_draft=0
+  seen_prerelease=0
+
+  printf '%s' "$metadata" | tr -d '\n\r\t ' | tr '{},' '\n' | while IFS= read -r field; do
+    case $field in
+      "\"tag_name\":\""*)
+        tag=$(printf '%s\n' "$field" | sed 's/"tag_name":"\([^"]*\)".*/\1/')
+        draft=false
+        prerelease=false
+        seen_draft=0
+        seen_prerelease=0
+        ;;
+      "\"draft\":true") draft=true; seen_draft=1 ;;
+      "\"draft\":false") draft=false; seen_draft=1 ;;
+      "\"prerelease\":true") prerelease=true; seen_prerelease=1 ;;
+      "\"prerelease\":false") prerelease=false; seen_prerelease=1 ;;
+    esac
+
+    if [ -n "$tag" ] && [ "$seen_draft" -eq 1 ] && [ "$seen_prerelease" -eq 1 ]; then
+      if [ "$draft" = false ] && [ "$prerelease" = false ]; then
+        printf '%s\n' "$tag"
+        break
+      fi
+      tag=
+    fi
+  done
+}
+
+resolve_ref() {
+  if [ -n "$CLI_REF" ]; then
+    printf '%s\n' "$CLI_REF"
+    return
+  fi
+  if [ -n "$LOOM_REF" ]; then
+    printf '%s\n' "$LOOM_REF"
+    return
+  fi
+
+  metadata=$(download_to_stdout "$CODEBERG_URL/api/v1/repos/$LOOM_REPO/releases?limit=50")
+  ref=$(latest_stable_ref_from_metadata "$metadata")
+  [ -n "$ref" ] || die "No stable Loom release found on Codeberg. Set LOOM_REF or pass --ref to install an explicit ref."
+  printf '%s\n' "$ref"
+}
+
+find_payload_dir() {
+  dir=$1
+  if payload_available "$dir"; then
+    printf '%s\n' "$dir"
+    return 0
+  fi
+  for candidate in "$dir"/*; do
+    [ -d "$candidate" ] || continue
+    if payload_available "$candidate"; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+fetch_archive() {
+  ref=$1
+  dest=$2
+  archive="$dest/loom.tar.gz"
+  download_to_stdout "$CODEBERG_URL/$LOOM_REPO/archive/$ref.tar.gz" > "$archive"
+  tar -xzf "$archive" -C "$dest" || die "Failed to extract Loom release archive for $ref."
+}
+
+cleanup_remote_tmp() {
+  [ -n "$REMOTE_TMP" ] || return 0
+  rm -rf "$REMOTE_TMP"
+}
+
+remote_bootstrap() {
+  REMOTE_TMP=$(mktemp -d "${TMPDIR:-/tmp}/loom-remote-install.XXXXXX") ||
+    die "Failed to create a temporary directory for remote install."
+  trap cleanup_remote_tmp EXIT HUP INT TERM
+
+  ref=$(resolve_ref)
+  fetch_archive "$ref" "$REMOTE_TMP"
+  payload_dir=$(find_payload_dir "$REMOTE_TMP") ||
+    die "Invalid Loom release archive for $ref: required payload files are missing."
+
+  set +e
+  sh "$payload_dir/install.sh" "$@"
+  status=$?
+  set -e
+  exit "$status"
+}
 
 # Echo the skills dir for a given tool, honoring --global.
 skills_dir_for() {
@@ -187,25 +325,37 @@ ensure_claude_import() {
   fi
 }
 
-# --- main ---
-say "Loom v$LOOM_VERSION"
-say "Tools: $TOOLS  |  Scope: $( [ "$GLOBAL" -eq 1 ] && echo global || echo project )  |  Project: $PROJECT"
-[ "$DRYRUN" -eq 1 ] && say "(dry run — no changes)"
-say ""
+main() {
+  parse_args "$@"
+  validate_tools
 
-if [ "$UNINSTALL" -eq 1 ]; then
-  uninstall_skills
-  strip_agents
+  if ! payload_available "$SCRIPT_DIR"; then
+    remote_bootstrap "$@"
+  fi
+
+  canonicalize_project
+
+  say "Loom v$LOOM_VERSION"
+  say "Tools: $TOOLS  |  Scope: $( [ "$GLOBAL" -eq 1 ] && echo global || echo project )  |  Project: $PROJECT"
+  [ "$DRYRUN" -eq 1 ] && say "(dry run - no changes)"
   say ""
-  say "Uninstalled Loom skills and AGENTS.md block. docs/ and CONTEXT.md were left untouched."
-  exit 0
-fi
 
-if [ "$DRYRUN" -eq 0 ]; then mkdir -p "$PROJECT"; fi
-install_skills
-scaffold_project
-inject_agents
-ensure_claude_import
+  if [ "$UNINSTALL" -eq 1 ]; then
+    uninstall_skills
+    strip_agents
+    say ""
+    say "Uninstalled Loom skills and AGENTS.md block. docs/ and CONTEXT.md were left untouched."
+    exit 0
+  fi
 
-say ""
-say "Done. Next: run /loom-init in your agent to bootstrap this project."
+  if [ "$DRYRUN" -eq 0 ]; then mkdir -p "$PROJECT"; fi
+  install_skills
+  scaffold_project
+  inject_agents
+  ensure_claude_import
+
+  say ""
+  say "Done. Next: run /loom-init in your agent to bootstrap this project."
+}
+
+main "$@"
