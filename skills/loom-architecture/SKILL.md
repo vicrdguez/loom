@@ -1,95 +1,115 @@
 ---
 name: loom-architecture
-description: Discover architecture-improvement candidates before a specific Loom Change is chosen. Scan read-only for architecture friction, render a temporary HTML report with visual deepening candidates, and hand the selected candidate into loom-explore.
+description: Scan a codebase for deepening opportunities before a Loom Change is chosen, present them as a visual HTML report, then send the selected candidate into loom-explore.
+disable-model-invocation: true
 ---
 
 # loom-architecture
 
-Architecture review is optional discovery before the normal Loom loop. Use it when the user wants to
-find a worthwhile architecture improvement but has not chosen a specific Change yet.
+Surface architectural friction and propose **deepening opportunities** - refactors that turn
+shallow modules into deep ones. The aim is testability and AI-navigability.
 
-This is **not** code review, dependency auditing, style critique, or a general project health check.
-The output is a short list of credible architecture-improvement candidates: places where a module
-could become deeper, seams could move, duplication could collapse, or domain language could become
-clearer enough to unlock future changes.
+This command is _informed_ by the project's domain model and built on a shared design vocabulary:
 
-## Read first
+- Run the `/loom-design` skill for the architecture vocabulary (**module**, **interface**,
+  **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion
+  test, "the interface is the test surface", "one adapter = hypothetical seam, two = real"). Use
+  these terms exactly in every suggestion - don't drift into "component," "service," "API," or
+  "boundary."
+- The domain language in `CONTEXT.md` gives names to good seams; ADRs in `docs/adr/` record
+  decisions this command should not re-litigate.
 
-Load the project's orientation material before scanning:
+Architecture review is optional discovery before the normal Loom loop. It is not code review,
+dependency auditing, style critique, or a general project health check. It is read-only until the
+user picks a candidate; durable updates begin in `/loom-explore`.
 
-- `docs/loom/project.md` — stack, commands, and repo conventions.
-- `CONTEXT.md` or `CONTEXT-MAP.md` — domain language. Read only; do not edit during review.
-- `docs/adr/*` — hard-to-reverse decisions already made. Read only.
-- `docs/capabilities/*` — what the system already does.
+## Process
 
-If one of these does not exist, continue. Architecture review can start with a sparse project.
+### 1. Explore
 
-## Scan
+Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
+If a `CONTEXT-MAP.md` exists, use it to find the relevant glossary and ADRs. Also skim
+`docs/loom/project.md` and `docs/capabilities/` when present so the scan fits the project's
+commands, conventions, and existing behaviour.
 
-Scan read-only. Do not edit code, Durable docs, Loom change docs, or capability docs.
+Then use the Harness's agent/subagent tool when available to walk the codebase. Don't follow rigid
+heuristics - explore organically and note where you experience friction:
 
-Use several focused passes, preferably with subagents when the Harness supports them:
+- Where does understanding one concept require bouncing between many small modules?
+- Where are modules **shallow** - interface nearly as complex as the implementation?
+- Where have pure functions been extracted just for testability, but the real bugs hide in how
+  they're called (no **locality**)?
+- Where do tightly-coupled modules leak across their seams?
+- Which parts of the codebase are untested, or hard to test through their current interface?
 
-1. **Module depth pass** — find shallow pass-through modules, over-wide interfaces, and places where
-   callers must know too much about an implementation.
-2. **Seam pass** — find seams that are missing, misplaced, or hypothetical. Apply the one-adapter
-   rule from `loom-design`: one adapter is not a real seam.
-3. **Duplication and locality pass** — find behavior repeated across callers where one deeper module
-   could improve locality.
-4. **Domain language pass** — find naming conflicts or fuzzy terms, checking against `CONTEXT.md`.
-5. **Workflow friction pass** — find places where tests, scripts, or docs make the next Change harder
-   than it needs to be.
+Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate
+complexity, or just move it? A "yes, concentrates" is the signal you want.
 
-For each candidate, classify the dependency category using `loom-design`'s deepening taxonomy:
+Classify each candidate with the dependency categories from
+`/loom-design`'s `DEEPENING.md`: `in-process`, `local-substitutable`,
+`remote but owned / ports & adapters`, or `true external / mock`.
 
-- **In-process** — pure computation or in-memory state.
-- **Local-substitutable** — filesystem, database, or other dependency with a local test stand-in.
-- **Remote but owned** — an owned service across a network seam; use a port and adapters.
-- **True external** — third-party service or nondeterministic dependency; inject and mock/fake.
+### 2. Present candidates as an HTML report
 
-Reject candidates that are merely taste, formatting, isolated bugs, speculative rewrites, or vague
-"clean up this area" projects. Include every credible candidate you find; do not cap the list, and
-do not pad the report with weak ideas.
+Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. Resolve the
+temp dir from `$TMPDIR`, falling back to `/tmp` (or `%TEMP%` on Windows), and write to
+`<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user
+- `xdg-open <path>` on Linux, `open <path>` on macOS, `start <path>` on Windows - and tell them the
+absolute path.
 
-## Candidate shape
+The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams
+where a graph/flow/sequence reliably communicates the structure. Mix Mermaid with hand-crafted
+CSS/SVG visuals - use Mermaid when relationships are graph-shaped (call graphs, dependencies,
+sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams,
+cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be
+visual.
 
-Each candidate must include:
+For each candidate, render a card with:
 
-- **Title** — a concrete architecture-improvement possibility.
-- **Current friction** — what makes the system harder to change today.
-- **Deepening move** — the kind of module/seam/language improvement worth exploring.
-- **Evidence** — files, commands, or observed patterns that justify the candidate.
-- **Recommendation strength** — `Strong`, `Medium`, or `Weak`.
-- **Dependency category** — one of the categories above.
-- **ADR warning** — whether the change may need an ADR if selected.
-- **Why not now** — any reason to defer or narrow the candidate.
+- **Files** - which files/modules are involved
+- **Problem** - why the current architecture is causing friction
+- **Solution** - plain English description of what would change
+- **Benefits** - explained in terms of locality and leverage, and how tests would improve
+- **Before / After diagram** - side-by-side, custom-drawn, illustrating the shallowness and the
+  deepening
+- **Recommendation strength** - one of `Strong`, `Worth exploring`, `Speculative`, rendered as a
+  badge
+- **Dependency category** - one of `in-process`, `local-substitutable`,
+  `remote but owned / ports & adapters`, `true external / mock`, rendered as a badge
 
-Pick exactly one **top recommendation**. The top recommendation should maximize likely leverage,
-clarity of evidence, and fit for Loom's test-first Change loop.
+End the report with a **Top recommendation** section: which candidate you'd tackle first and why.
 
-Do **not** propose final module interfaces in the report. Interface design belongs in
-`/loom-explore`, using `loom-design`, after the human chooses a candidate.
+**Use CONTEXT.md vocabulary for the domain, and the `/loom-design` vocabulary for the architecture.**
+If `CONTEXT.md` defines "Order," talk about "the Order intake module" - not "the FooBarHandler,"
+and not "the Order service."
 
-## Render the report
+**ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is
+real enough to warrant revisiting the ADR. Mark it clearly in the card (e.g. a warning callout:
+_"contradicts ADR-0007 - but worth reopening because..."_). Don't list every theoretical refactor an
+ADR forbids.
 
-Render an ephemeral HTML report in the OS temp directory. Use Tailwind CDN and Mermaid CDN where
-diagrams clarify before/after structure. Do not create persistent report files under `docs/loom/`.
+See [HTML-REPORT.md](./reference/HTML-REPORT.md) for the full HTML scaffold, diagram patterns, and
+styling guidance.
 
-Follow [HTML-REPORT.md](./reference/HTML-REPORT.md) for the report structure and visual style.
+Do NOT propose interfaces yet. After the file is written, ask the user: "Which of these would you
+like to explore?"
 
-After writing the report, show the user the path and summarize the top recommendation plus the
-number of candidates found.
+### 3. Grilling loop
 
-## Continue
+Once the user picks a candidate, run `/loom-explore` on the selected Architecture review candidate.
+`/loom-explore` walks the design tree with them - constraints, dependencies, the shape of the
+deepened module, what sits behind the seam, what tests survive - and turns the candidate into a Loom
+Change when it is understood.
 
-Ask the user which candidate to explore. Once selected:
+Side effects happen inline as decisions crystallize in `/loom-explore` - run `/loom-domain` to keep
+the domain model current as you go:
 
-1. Fork the conversation for the selected candidate when the Harness supports thread forking;
-   otherwise continue in the same conversation.
-2. Start `/loom-explore` with the selected candidate as the proposed Change.
-3. Only then may Durable docs change: `loom-explore` can sharpen `CONTEXT.md`, offer ADRs, and settle
-   module shapes.
-
-The hand-off line is:
-
-**"Run `/loom-explore` on the selected Architecture review candidate."**
+- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`.
+  Create the file lazily if it doesn't exist.
+- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
+- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to
+  record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the
+  reason would actually be needed by a future explorer to avoid re-suggesting the same thing - skip
+  ephemeral reasons ("not worth it right now") and self-evident ones.
+- **Want to explore alternative interfaces for the deepened module?** Run `/loom-design` and use its
+  design-it-twice parallel sub-agent pattern.
