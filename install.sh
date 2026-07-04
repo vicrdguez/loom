@@ -6,7 +6,7 @@ set -eu
 LOOM_VERSION="0.1.0"
 GITHUB_URL="https://github.com"
 GITHUB_API_URL="https://api.github.com"
-LOOM_REPO="vicrodriguez/loom"
+LOOM_REPO="vicrdguez/loom"
 
 TOOLS="claude,codex,opencode"
 GLOBAL=0
@@ -29,7 +29,7 @@ Loom installer
 
 Usage:
   ./install.sh [options]
-  curl -fsSL https://raw.githubusercontent.com/vicrodriguez/loom/main/install.sh | sh -s -- [options]
+  curl -fsSL https://raw.githubusercontent.com/vicrdguez/loom/main/install.sh | sh -s -- [options]
 
 Options:
   --tools LIST     Comma-separated harnesses: claude,codex,opencode (default: all three)
