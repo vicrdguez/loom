@@ -39,6 +39,11 @@ A single unit of work taken through the Loom loop, owned by a directory under
 `docs/loom/changes/<slug>/` and moved to `changes/archive/` when complete.
 _Avoid_: Task, ticket, feature
 
+**Architecture review**:
+A Loom workflow pass that finds candidate Changes from architecture friction before a specific
+Change is chosen. It is not a code review of an existing diff and not a general health check.
+_Avoid_: Code review, health check, audit
+
 **Durable doc**:
 Documentation that outlives any single change — the `CONTEXT.md` glossary, ADRs, and capability
 docs. Committed wherever it is authored. Contrast with a change's own briefs, which get archived.
