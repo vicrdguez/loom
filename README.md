@@ -58,19 +58,21 @@ project on its feet before you adopt the full flow. These come almost directly f
 ## Install
 
 ```sh
-curl -fsSL https://codeberg.org/vicrodriguez/loom/raw/branch/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/vicrodriguez/loom/main/install.sh | sh
 ```
 
 Pass flags through `sh -s --`:
 
 ```sh
-curl -fsSL https://codeberg.org/vicrodriguez/loom/raw/branch/main/install.sh | sh -s -- --tools codex
+curl -fsSL https://raw.githubusercontent.com/vicrodriguez/loom/main/install.sh | sh -s -- --tools codex
 ```
 
 Other flags: `--tools LIST`, `--global` (install the skills for your user instead of one project),
 `--project DIR`, `--ref REF`, `--uninstall`, `--force`, `--dry-run`. By default, the remote
-installer resolves the latest non-prerelease Codeberg release archive. Use `--ref REF` or
+installer resolves the latest non-prerelease GitHub release archive. Use `--ref REF` or
 `LOOM_REF=REF` to install a specific tag or branch.
+
+GitHub is the canonical host for installs, releases, and PRs. Codeberg is only a mirror.
 
 The installer copies the `loom-*` skills into each harness's skills directory, scaffolds `docs/`,
 and adds a short Loom section to `AGENTS.md` (and `@AGENTS.md` to `CLAUDE.md` for Claude Code).

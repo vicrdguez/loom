@@ -4,7 +4,7 @@ How Loom installs and removes its skills, docs scaffold, and agent instructions.
 ## Behaviors
 - A checkout install uses the payload beside `install.sh` and does not request remote release data.
   -> `test/install_test.sh::test_install_from_checkout_using_bundled_payload` (added 2026-06-28)
-- Remote install resolves the latest non-prerelease Codeberg release by default, then hands off to
+- Remote install resolves the latest non-prerelease GitHub release by default, then hands off to
   that release archive's own installer.
   -> `test/install_test.sh::test_install_latest_non_prerelease_release` (added 2026-06-28)
 - `LOOM_REF` selects an explicit remote tag or branch, and `--ref REF` takes precedence over
@@ -27,8 +27,8 @@ How Loom installs and removes its skills, docs scaffold, and agent instructions.
   -> `test/install_test.sh::test_fetch_remote_payload_with_available_downloader` (added 2026-06-28)
 
 ## Decisions
-- Remote install uses Codeberg latest stable releases by default, with explicit refs for pinned or
-  development installs. - [ADR-0001](../adr/0001-remote-install-uses-codeberg-latest-release.md)
+- Remote install uses GitHub latest stable releases by default, with explicit refs for pinned or
+  development installs. - [ADR-0001](../adr/0001-remote-install-uses-github-latest-release.md)
 
 ## Language
 **Harness**, **Project install**, **Global install**, **Remote install**, and **Release archive** -

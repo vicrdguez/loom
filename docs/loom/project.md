@@ -20,9 +20,10 @@ POSIX `sh` installer and Markdown documentation.
 
 ## Forge
 <!-- loom-submit reads this to open the PR. The token is an ENV VAR, never written here. -->
-- **Host:** codeberg
+- **Host:** github
 - **Repo:** vicrodriguez/loom
-- **PR token env var:** FORGEJO_TOKEN — set in your shell, not here.
+- **PR token env var:** GH_TOKEN — set in your shell, not here.
 
 ## Constraints
-- Remote install defaults to Codeberg release archives and must not require Git.
+- Remote install defaults to GitHub release archives and must not require Git.
+- Codeberg is a mirror only; GitHub is the canonical host for releases and PRs.

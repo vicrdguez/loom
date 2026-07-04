@@ -4,7 +4,8 @@
 set -eu
 
 LOOM_VERSION="0.1.0"
-CODEBERG_URL="https://codeberg.org"
+GITHUB_URL="https://github.com"
+GITHUB_API_URL="https://api.github.com"
 LOOM_REPO="vicrodriguez/loom"
 
 TOOLS="claude,codex,opencode"
@@ -28,7 +29,7 @@ Loom installer
 
 Usage:
   ./install.sh [options]
-  curl -fsSL https://codeberg.org/vicrodriguez/loom/raw/branch/main/install.sh | sh -s -- [options]
+  curl -fsSL https://raw.githubusercontent.com/vicrodriguez/loom/main/install.sh | sh -s -- [options]
 
 Options:
   --tools LIST     Comma-separated harnesses: claude,codex,opencode (default: all three)
@@ -160,9 +161,9 @@ resolve_ref() {
     return
   fi
 
-  metadata=$(download_to_stdout "$CODEBERG_URL/api/v1/repos/$LOOM_REPO/releases?limit=50")
+  metadata=$(download_to_stdout "$GITHUB_API_URL/repos/$LOOM_REPO/releases?per_page=50")
   ref=$(latest_stable_ref_from_metadata "$metadata")
-  [ -n "$ref" ] || die "No stable Loom release found on Codeberg. Set LOOM_REF or pass --ref to install an explicit ref."
+  [ -n "$ref" ] || die "No stable Loom release found on GitHub. Set LOOM_REF or pass --ref to install an explicit ref."
   printf '%s\n' "$ref"
 }
 
@@ -186,7 +187,7 @@ fetch_archive() {
   ref=$1
   dest=$2
   archive="$dest/loom.tar.gz"
-  download_to_stdout "$CODEBERG_URL/$LOOM_REPO/archive/$ref.tar.gz" > "$archive"
+  download_to_stdout "$GITHUB_URL/$LOOM_REPO/archive/$ref.tar.gz" > "$archive"
   tar -xzf "$archive" -C "$dest" || die "Failed to extract Loom release archive for $ref."
 }
 
