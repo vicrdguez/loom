@@ -528,6 +528,7 @@ test_remote_uninstall_removes_loom_artifacts_and_preserves_durable_docs() {
   printf '# Project context\n' > "$project/CONTEXT.md"
   mkdir -p "$project/docs/capabilities"
   printf '# Installation\n' > "$project/docs/capabilities/installation.md"
+  assert_exists "$project/.codex/skills/loom-architecture/SKILL.md"
   assert_exists "$project/.codex/skills/loom-explore/SKILL.md"
   assert_contains "$project/AGENTS.md" "<!-- LOOM:START -->"
 
@@ -558,6 +559,7 @@ JSON
     --project "$project"
 
   assert_status 0
+  assert_not_exists "$project/.codex/skills/loom-architecture"
   assert_not_exists "$project/.codex/skills/loom-explore"
   assert_not_contains "$project/AGENTS.md" "<!-- LOOM:START -->"
   assert_exists "$project/docs/loom/project.md"

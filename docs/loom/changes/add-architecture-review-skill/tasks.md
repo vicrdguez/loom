@@ -4,7 +4,7 @@
 - [x] B1  Checkout install includes the architecture review skill -> behavior.md §1
 - [x] B2  Remote release payload requires the architecture review skill -> behavior.md §2
 - [x] B3  Remote install includes the architecture review skill -> behavior.md §3
-- [ ] B4  Uninstall removes the architecture review skill -> behavior.md §4
+- [x] B4  Uninstall removes the architecture review skill -> behavior.md §4
 
 ## Chores
 - [x] C1  Add `skills/loom-architecture/SKILL.md`
