@@ -208,7 +208,7 @@ SH
   printf '%s:%s\n' "$dir" "$(make_system_bin "$name")"
 }
 
-test_install_from_checkout_using_bundled_payload() {
+test_checkout_install_includes_architecture_review_skill() {
   project=$(make_project local-install)
   home=$(make_home local-install)
   failbin=$(make_failing_remote_bin local-install)
@@ -218,6 +218,7 @@ test_install_from_checkout_using_bundled_payload() {
     --project "$project"
 
   assert_status 0
+  assert_exists "$project/.codex/skills/loom-architecture/SKILL.md"
   assert_exists "$project/.codex/skills/loom-explore/SKILL.md"
   assert_exists "$project/.codex/skills/loom-propose/SKILL.md"
   assert_exists "$project/.codex/skills/loom-apply/SKILL.md"
@@ -535,8 +536,8 @@ test_fail_clearly_when_no_downloader_is_available() {
   assert_not_exists "$home/.codex"
 }
 
-run_test "Install from a checkout using the bundled payload" \
-  test_install_from_checkout_using_bundled_payload
+run_test "Checkout install includes the architecture review skill" \
+  test_checkout_install_includes_architecture_review_skill
 run_test "Install the latest non-prerelease release" \
   test_install_latest_non_prerelease_release
 run_test "Select an explicit ref for remote install" \
