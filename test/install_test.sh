@@ -444,6 +444,42 @@ JSON
   assert_not_exists "$home/.codex"
 }
 
+test_remote_install_includes_architecture_review_skill() {
+  project=$(make_project remote-architecture)
+  home=$(make_home remote-architecture)
+  metadata="$TMP_ROOT/releases-remote-architecture.json"
+  archives="$TMP_ROOT/archives-remote-architecture"
+  log="$TMP_ROOT/download-remote-architecture.log"
+  bootstrap=$(make_remote_script remote-architecture)
+
+  cat >"$metadata" <<'JSON'
+[
+  {"tag_name":"v0.1.0","prerelease":false,"draft":false}
+]
+JSON
+  make_valid_archive "v0.1.0" "$archives"
+  : >"$log"
+  test_path=$(make_fake_download_bin remote-architecture "curl wget" "$metadata" "$archives" "$log")
+
+  run_cmd env \
+    HOME="$home" \
+    PATH="$test_path" \
+    LOOM_REF="v0.1.0" \
+    LOOM_TEST_METADATA="$metadata" \
+    LOOM_TEST_ARCHIVE_DIR="$archives" \
+    LOOM_TEST_LOG="$log" \
+    "$SH_BIN" "$bootstrap" \
+    --tools codex \
+    --project "$project"
+
+  assert_status 0
+  assert_exists "$project/.codex/skills/loom-architecture/SKILL.md"
+  assert_exists "$project/.codex/skills/loom-architecture/reference/HTML-REPORT.md"
+  assert_exists "$project/docs/loom/project.md"
+  assert_contains "$project/AGENTS.md" "<!-- LOOM:START -->"
+  assert_not_exists "$home/.codex"
+}
+
 test_dry_run_remote_install_makes_no_project_or_user_install_changes() {
   project=$(make_project dry-run)
   home=$(make_home dry-run)
@@ -595,6 +631,8 @@ run_test "Reject an invalid remote payload" \
   test_reject_invalid_remote_payload
 run_test "Remote release payload requires the architecture review skill" \
   test_remote_release_payload_requires_architecture_review_skill
+run_test "Remote install includes the architecture review skill" \
+  test_remote_install_includes_architecture_review_skill
 run_test "Dry-run remote install makes no project or user install changes" \
   test_dry_run_remote_install_makes_no_project_or_user_install_changes
 run_test "Remote uninstall removes Loom artifacts and preserves durable docs" \
