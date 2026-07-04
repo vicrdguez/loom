@@ -103,6 +103,7 @@ payload_available() {
   [ -f "$dir/skills/loom-explore/SKILL.md" ] || return 1
   [ -f "$dir/skills/loom-propose/SKILL.md" ] || return 1
   [ -f "$dir/skills/loom-apply/SKILL.md" ] || return 1
+  [ -f "$dir/skills/loom-architecture/SKILL.md" ] || return 1
 }
 
 download_to_stdout() {

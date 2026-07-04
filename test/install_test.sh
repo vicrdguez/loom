@@ -139,6 +139,7 @@ copy_valid_payload() {
   cp -R "$ROOT/skills/loom-explore" "$dest/skills/"
   cp -R "$ROOT/skills/loom-propose" "$dest/skills/"
   cp -R "$ROOT/skills/loom-apply" "$dest/skills/"
+  cp -R "$ROOT/skills/loom-architecture" "$dest/skills/"
   cp -R "$ROOT/skills/loom-init" "$dest/skills/"
 }
 
@@ -148,6 +149,17 @@ make_valid_archive() {
   payload="$TMP_ROOT/payload-$ref"
   rm -rf "$payload"
   copy_valid_payload "$payload/loom-$ref"
+  mkdir -p "$archive_dir"
+  (cd "$payload" && tar -czf "$archive_dir/$ref.tar.gz" "loom-$ref")
+}
+
+make_archive_without_architecture_skill() {
+  ref=$1
+  archive_dir=$2
+  payload="$TMP_ROOT/payload-without-architecture-$ref"
+  rm -rf "$payload"
+  copy_valid_payload "$payload/loom-$ref"
+  rm -rf "$payload/loom-$ref/skills/loom-architecture"
   mkdir -p "$archive_dir"
   (cd "$payload" && tar -czf "$archive_dir/$ref.tar.gz" "loom-$ref")
 }
@@ -397,6 +409,41 @@ JSON
   assert_not_exists "$home/.codex"
 }
 
+test_remote_release_payload_requires_architecture_review_skill() {
+  project=$(make_project missing-architecture)
+  home=$(make_home missing-architecture)
+  metadata="$TMP_ROOT/releases-missing-architecture.json"
+  archives="$TMP_ROOT/archives-missing-architecture"
+  log="$TMP_ROOT/download-missing-architecture.log"
+  bootstrap=$(make_remote_script missing-architecture)
+
+  cat >"$metadata" <<'JSON'
+[
+  {"tag_name":"v0.1.0","prerelease":false,"draft":false}
+]
+JSON
+  make_archive_without_architecture_skill "v0.1.0" "$archives"
+  : >"$log"
+  test_path=$(make_fake_download_bin missing-architecture "curl wget" "$metadata" "$archives" "$log")
+
+  run_cmd env \
+    HOME="$home" \
+    PATH="$test_path" \
+    LOOM_REF="v0.1.0" \
+    LOOM_TEST_METADATA="$metadata" \
+    LOOM_TEST_ARCHIVE_DIR="$archives" \
+    LOOM_TEST_LOG="$log" \
+    "$SH_BIN" "$bootstrap" \
+    --tools codex \
+    --project "$project"
+
+  assert_status 1
+  assert_contains "$CURRENT_OUT" "Invalid Loom release archive for v0.1.0"
+  assert_contains "$log" "/archive/v0.1.0.tar.gz"
+  assert_dir_empty "$project"
+  assert_not_exists "$home/.codex"
+}
+
 test_dry_run_remote_install_makes_no_project_or_user_install_changes() {
   project=$(make_project dry-run)
   home=$(make_home dry-run)
@@ -546,6 +593,8 @@ run_test "Fail when no stable release exists" \
   test_fail_when_no_stable_release_exists
 run_test "Reject an invalid remote payload" \
   test_reject_invalid_remote_payload
+run_test "Remote release payload requires the architecture review skill" \
+  test_remote_release_payload_requires_architecture_review_skill
 run_test "Dry-run remote install makes no project or user install changes" \
   test_dry_run_remote_install_makes_no_project_or_user_install_changes
 run_test "Remote uninstall removes Loom artifacts and preserves durable docs" \
