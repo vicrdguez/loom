@@ -11,8 +11,8 @@
 - [x] C2  Add `skills/loom-architecture/reference/HTML-REPORT.md`
 - [x] C3  Require `loom-architecture` in installer payload validation
 - [x] C4  Ensure remote test payload fixtures include `loom-architecture`
-- [ ] C5  Keep generated Harness copies out of the source change
-- [ ] C6  Update README and AGENTS guidance for optional Architecture review
+- [x] C5  Keep generated Harness copies out of the source change
+- [x] C6  Update README and AGENTS guidance for optional Architecture review
 
 ## Docs
-- [ ] D1  Add `docs/capabilities/workflow.md`
+- [x] D1  Add `docs/capabilities/workflow.md`

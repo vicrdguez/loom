@@ -30,6 +30,11 @@ actually hold the line.
 
 ## The loop
 
+If you know the change you want, start with `/loom-explore`. If you want to look for a good
+architecture improvement first, run `/loom-architecture`: it scans read-only for architecture
+friction, renders a temporary HTML report with candidates, and hands the chosen candidate into
+`/loom-explore`.
+
 Run `/loom-init` once in a project, then per change:
 
 | Skill | What it does |
@@ -45,13 +50,15 @@ worktree and `submit` opens the PR, so `apply → submit` can run unattended —
 parallel — with the human gate at PR merge. Since the decisions are already written down in `plan.md`,
 `apply` is the part you can hand to a cheaper model.
 
-### Two skills you can also run on their own
+### Discovery and foundational skills
 
-These are used inside the loop, but they stand alone too, which is handy for getting a brownfield
-project on its feet before you adopt the full flow. These come almost directly from Matt's skills repo.
+These are used around or inside the loop, but they stand alone too, which is handy for getting a
+brownfield project on its feet before you adopt the full flow. They come almost directly from Matt's
+skills repo.
 
 | Skill | What it does |
 |---|---|
+| `/loom-architecture` | Optional discovery before a change is chosen: scan architecture friction, produce a temporary visual report, and select a candidate for `/loom-explore`. |
 | `/loom-domain` | Build and sharpen the domain glossary (`CONTEXT.md`) and record decisions as ADRs. |
 | `/loom-design` | Talk about modules in precise terms: interfaces, seams, depth, testability. It applies at every level, so internal modules count too. |
 
