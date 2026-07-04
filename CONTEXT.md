@@ -70,6 +70,48 @@ The git branch a change is built on, checked out in its own worktree under a git
 change on its own branch is what lets multiple changes proceed in parallel.
 _Avoid_: Feature branch, topic branch
 
+### Topology & roles
+
+**Stage**:
+One step of the Loom pipeline — explore, propose, build, review, land. Every stage exists in every
+topology; what varies is which role fills it. Maps to the skills `loom-explore` / `loom-propose` /
+`loom-apply` (build) / `loom-review` (review — a standing model stage in both topologies) /
+`loom-submit` (land). Review is a model stage run in a fresh context; land is the human's acceptance
+gate.
+_Avoid_: Phase, step
+
+**Topology**:
+How the pipeline's roles are assigned and coordinated for a change. **Single-model** (the default):
+every role collapses onto one model plus the human, handing off sequentially in one context.
+**Multi-model**: planner, implementor, and reviewer are distinct models coordinated through the
+board. Chosen **per change, not per project** — there is no mode flag; you publish a change to the
+board and run workers to hand it off, or you don't. Topology is emergent from what you run.
+_Avoid_: Mode, flow
+
+**Role**:
+The function a participant fills at a stage — planner (explore/propose), implementor (build),
+reviewer (review), and the human (land). The **trust boundary**: the model that built a change never
+verifies, archives, or blesses it — a different role does.
+_Avoid_: Persona, agent
+
+**Worker**:
+A single-model agent that fills one role by processing exactly one change per invocation and then
+exiting; the harness's own scheduler re-fires it with a fresh context. Exists only in the
+multi-model topology.
+_Avoid_: Daemon, bot, agent
+
+**Board**:
+The forge's issues, PRs, and labels used as the asynchronous coordination medium between workers in
+the multi-model topology. Four labels carry a change's lifecycle: `loom:ready` (issue awaiting an
+implementor), `loom:review` (PR awaiting a reviewer), `loom:rework` (PR bounced back), `loom:done`
+(PR awaiting the human's merge).
+_Avoid_: Queue, tracker
+
+**Change issue**:
+The forge issue that publishes a proposed change to the board so an implementor worker can claim it;
+it carries or links the change brief. Created by `loom-propose` in the multi-model topology only.
+_Avoid_: Ticket
+
 ## Example Dialogue
 
 Dev: "Can I run a remote install in my app repo?"
