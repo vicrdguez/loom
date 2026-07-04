@@ -188,7 +188,7 @@ done
 tool=${0##*/}
 printf '%s %s\n' "$tool" "$url" >> "$LOOM_TEST_LOG"
 case $url in
-  *'api.github.com/repos/vicrodriguez/loom/releases?'*)
+  *'api.github.com/repos/vicrdguez/loom/releases?'*)
     cat "$LOOM_TEST_METADATA"
     ;;
   *'/archive/'*.tar.gz)
@@ -256,7 +256,7 @@ JSON
     --project "$project"
 
   assert_status 0
-  assert_contains "$log" "api.github.com/repos/vicrodriguez/loom/releases?per_page=50"
+  assert_contains "$log" "api.github.com/repos/vicrdguez/loom/releases?per_page=50"
   assert_contains "$log" "/archive/v0.1.0.tar.gz"
   assert_not_contains "$log" "/archive/v0.2.0-rc1.tar.gz"
   assert_exists "$project/.codex/skills/loom-explore/SKILL.md"
@@ -295,7 +295,7 @@ JSON
     --project "$project_env"
 
   assert_status 0
-  assert_not_contains "$log_env" "api.github.com/repos/vicrodriguez/loom/releases?"
+  assert_not_contains "$log_env" "api.github.com/repos/vicrdguez/loom/releases?"
   assert_contains "$log_env" "/archive/v0.1.0.tar.gz"
   assert_exists "$project_env/.codex/skills/loom-explore/SKILL.md"
 
@@ -319,7 +319,7 @@ JSON
     --project "$project_cli"
 
   assert_status 0
-  assert_not_contains "$log_cli" "api.github.com/repos/vicrodriguez/loom/releases?"
+  assert_not_contains "$log_cli" "api.github.com/repos/vicrdguez/loom/releases?"
   assert_contains "$log_cli" "/archive/main.tar.gz"
   assert_not_contains "$log_cli" "/archive/v0.1.0.tar.gz"
   assert_exists "$project_cli/.codex/skills/loom-explore/SKILL.md"
@@ -355,7 +355,7 @@ JSON
 
   assert_status 1
   assert_contains "$CURRENT_OUT" "No stable Loom release found on GitHub"
-  assert_contains "$log" "api.github.com/repos/vicrodriguez/loom/releases?per_page=50"
+  assert_contains "$log" "api.github.com/repos/vicrdguez/loom/releases?per_page=50"
   assert_not_contains "$log" "/archive/"
   assert_dir_empty "$project"
   assert_not_exists "$home/.codex"
@@ -511,7 +511,7 @@ JSON
       --project "$project"
 
     assert_status 0
-    assert_contains "$log" "$downloader https://github.com/vicrodriguez/loom/archive/v0.1.0.tar.gz"
+    assert_contains "$log" "$downloader https://github.com/vicrdguez/loom/archive/v0.1.0.tar.gz"
     assert_exists "$project/.codex/skills/loom-explore/SKILL.md"
   done
 }

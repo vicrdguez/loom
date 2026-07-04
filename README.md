@@ -58,13 +58,13 @@ project on its feet before you adopt the full flow. These come almost directly f
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/vicrodriguez/loom/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/vicrdguez/loom/main/install.sh | sh
 ```
 
 Pass flags through `sh -s --`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/vicrodriguez/loom/main/install.sh | sh -s -- --tools codex
+curl -fsSL https://raw.githubusercontent.com/vicrdguez/loom/main/install.sh | sh -s -- --tools codex
 ```
 
 Other flags: `--tools LIST`, `--global` (install the skills for your user instead of one project),

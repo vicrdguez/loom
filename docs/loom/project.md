@@ -21,7 +21,7 @@ POSIX `sh` installer and Markdown documentation.
 ## Forge
 <!-- loom-submit reads this to open the PR. The token is an ENV VAR, never written here. -->
 - **Host:** github
-- **Repo:** vicrodriguez/loom
+- **Repo:** vicrdguez/loom
 - **PR token env var:** GH_TOKEN — set in your shell, not here.
 
 ## Constraints
