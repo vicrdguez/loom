@@ -5,6 +5,10 @@ Loom is a spec-light, test-first engineering workflow. It weaves a change from u
 behavior → tests → durable docs. **Tests are the behavior contract** (they run, so they can't
 drift); the documents are how humans and agents stay oriented.
 
+**Optional discovery** (before choosing a Change):
+- `/loom-architecture` — scan read-only for architecture friction, render a temporary visual report,
+  and hand the selected candidate into `/loom-explore`.
+
 **Loop** (run `/loom-init` once per project, then per change):
 - `/loom-explore` — grill the change into shared understanding; sharpen `CONTEXT.md`, record ADRs.
 - `/loom-propose` — cut the change branch (worktree), write the brief: `intent.md`, `behavior.md`
