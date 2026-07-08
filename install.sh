@@ -3,7 +3,7 @@
 # and injects a lean orientation block into AGENTS.md. POSIX sh, no dependencies.
 set -eu
 
-LOOM_VERSION="0.1.1"
+LOOM_VERSION="0.1.2"
 GITHUB_URL="https://github.com"
 GITHUB_API_URL="https://api.github.com"
 LOOM_REPO="vicrdguez/loom"
