@@ -1,0 +1,8 @@
+{
+  "name": "loom",
+  "description": "Spec-light, test-first engineering workflow: explore → propose → apply → submit, woven from durable docs and tests.",
+  "version": "0.1.1",
+  "author": { "name": "Victor Rodriguez" },
+  "homepage": "https://github.com/vicrdguez/loom",
+  "license": "MIT"
+}

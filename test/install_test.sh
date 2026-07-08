@@ -175,6 +175,29 @@ make_invalid_archive() {
   (cd "$payload" && tar -czf "$archive_dir/$ref.tar.gz" "loom-$ref")
 }
 
+# A structurally valid archive whose skill roster is intentionally unlike the current one
+# (a single, differently named loom-* skill). Proves payload_available accepts an archive by
+# structure, not by a hardcoded skill list — the drift that broke the v0.1.1 install.
+make_skew_archive() {
+  ref=$1
+  archive_dir=$2
+  payload="$TMP_ROOT/skew-payload-$ref"
+  rm -rf "$payload"
+  dest="$payload/loom-$ref"
+  mkdir -p "$dest/templates" "$dest/skills/loom-future"
+  cp "$ROOT/install.sh" "$dest/install.sh"
+  cp "$ROOT/AGENTS.tmpl.md" "$dest/AGENTS.tmpl.md"
+  cp "$ROOT/templates/project.md" "$dest/templates/project.md"
+  cat >"$dest/skills/loom-future/SKILL.md" <<'MD'
+---
+name: loom-future
+description: A skill whose name the installer has never heard of.
+---
+MD
+  mkdir -p "$archive_dir"
+  (cd "$payload" && tar -czf "$archive_dir/$ref.tar.gz" "loom-$ref")
+}
+
 make_remote_script() {
   name=$1
   dir="$TMP_ROOT/bootstrap-$name"
@@ -409,6 +432,7 @@ JSON
   assert_not_exists "$home/.codex"
 }
 
+<<<<<<< Updated upstream
 test_remote_release_payload_requires_architecture_review_skill() {
   project=$(make_project missing-architecture)
   home=$(make_home missing-architecture)
@@ -416,12 +440,22 @@ test_remote_release_payload_requires_architecture_review_skill() {
   archives="$TMP_ROOT/archives-missing-architecture"
   log="$TMP_ROOT/download-missing-architecture.log"
   bootstrap=$(make_remote_script missing-architecture)
+=======
+test_accept_remote_payload_with_unfamiliar_skill_roster() {
+  project=$(make_project skew-payload)
+  home=$(make_home skew-payload)
+  metadata="$TMP_ROOT/releases-skew.json"
+  archives="$TMP_ROOT/archives-skew"
+  log="$TMP_ROOT/download-skew.log"
+  bootstrap=$(make_remote_script skew-payload)
+>>>>>>> Stashed changes
 
   cat >"$metadata" <<'JSON'
 [
   {"tag_name":"v0.1.0","prerelease":false,"draft":false}
 ]
 JSON
+<<<<<<< Updated upstream
   make_archive_without_architecture_skill "v0.1.0" "$archives"
   : >"$log"
   test_path=$(make_fake_download_bin missing-architecture "curl wget" "$metadata" "$archives" "$log")
@@ -460,6 +494,11 @@ JSON
   make_valid_archive "v0.1.0" "$archives"
   : >"$log"
   test_path=$(make_fake_download_bin remote-architecture "curl wget" "$metadata" "$archives" "$log")
+=======
+  make_skew_archive "v0.1.0" "$archives"
+  : >"$log"
+  test_path=$(make_fake_download_bin skew-payload "curl wget" "$metadata" "$archives" "$log")
+>>>>>>> Stashed changes
 
   run_cmd env \
     HOME="$home" \
@@ -473,11 +512,18 @@ JSON
     --project "$project"
 
   assert_status 0
+<<<<<<< Updated upstream
   assert_exists "$project/.codex/skills/loom-architecture/SKILL.md"
   assert_exists "$project/.codex/skills/loom-architecture/reference/HTML-REPORT.md"
   assert_exists "$project/docs/loom/project.md"
   assert_contains "$project/AGENTS.md" "<!-- LOOM:START -->"
   assert_not_exists "$home/.codex"
+=======
+  assert_not_contains "$CURRENT_OUT" "required payload files are missing"
+  assert_exists "$project/.codex/skills/loom-future/SKILL.md"
+  assert_exists "$project/docs/loom/project.md"
+  assert_contains "$project/AGENTS.md" "<!-- LOOM:START -->"
+>>>>>>> Stashed changes
 }
 
 test_dry_run_remote_install_makes_no_project_or_user_install_changes() {
@@ -629,6 +675,8 @@ run_test "Select an explicit ref for remote install" \
   test_select_explicit_ref_for_remote_install
 run_test "Fail when no stable release exists" \
   test_fail_when_no_stable_release_exists
+run_test "Accept a remote payload whose skill roster is unfamiliar" \
+  test_accept_remote_payload_with_unfamiliar_skill_roster
 run_test "Reject an invalid remote payload" \
   test_reject_invalid_remote_payload
 run_test "Remote release payload requires the architecture review skill" \

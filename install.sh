@@ -3,7 +3,7 @@
 # and injects a lean orientation block into AGENTS.md. POSIX sh, no dependencies.
 set -eu
 
-LOOM_VERSION="0.1.0"
+LOOM_VERSION="0.1.1"
 GITHUB_URL="https://github.com"
 GITHUB_API_URL="https://api.github.com"
 LOOM_REPO="vicrdguez/loom"
@@ -95,15 +95,28 @@ canonicalize_project() {
   fi
 }
 
+# A payload is any dir carrying the installer, its templates, and at least one loom skill.
+# Deliberately structural — never enumerate individual skill names here. The outer (curled)
+# script may be a different version than the archive it validates; naming specific skills
+# couples the two and breaks the install whenever a skill is renamed, added, or removed.
+# The outer script only fetches + delegates; the inner install.sh owns the actual install.
 payload_available() {
   dir=$1
   [ -f "$dir/install.sh" ] || return 1
   [ -f "$dir/AGENTS.tmpl.md" ] || return 1
   [ -f "$dir/templates/project.md" ] || return 1
+<<<<<<< Updated upstream
   [ -f "$dir/skills/loom-explore/SKILL.md" ] || return 1
   [ -f "$dir/skills/loom-propose/SKILL.md" ] || return 1
   [ -f "$dir/skills/loom-apply/SKILL.md" ] || return 1
   [ -f "$dir/skills/loom-architecture/SKILL.md" ] || return 1
+=======
+  [ -d "$dir/skills" ] || return 1
+  for skill in "$dir"/skills/loom-*/SKILL.md; do
+    [ -f "$skill" ] && return 0
+  done
+  return 1
+>>>>>>> Stashed changes
 }
 
 download_to_stdout() {

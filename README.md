@@ -64,6 +64,24 @@ skills repo.
 
 ## Install
 
+### Claude Code (native plugin)
+
+Loom ships as a Claude Code plugin, so the idiomatic install is the plugin marketplace — it is
+version-tracked and updates in place, no shell or archive juggling:
+
+```
+/plugin marketplace add vicrdguez/loom
+/plugin install loom@loom
+```
+
+Then run `/loom-init` in your project — it scaffolds `docs/`, adds the Loom section to `AGENTS.md`,
+and wires `@AGENTS.md` into `CLAUDE.md`.
+
+### Codex, OpenCode, or all harnesses at once (installer)
+
+The plugin mechanism is Claude-only, so Codex and OpenCode (and a one-shot install across all three)
+use the script:
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/vicrdguez/loom/main/install.sh | sh
 ```

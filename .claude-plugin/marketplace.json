@@ -1,0 +1,11 @@
+{
+  "name": "loom",
+  "owner": { "name": "Victor Rodriguez", "url": "https://github.com/vicrdguez" },
+  "plugins": [
+    {
+      "name": "loom",
+      "source": "./",
+      "description": "Loom engineering workflow skills: explore, propose, apply, submit, plus the foundational domain and design skills."
+    }
+  ]
+}
