@@ -153,17 +153,6 @@ make_valid_archive() {
   (cd "$payload" && tar -czf "$archive_dir/$ref.tar.gz" "loom-$ref")
 }
 
-make_archive_without_architecture_skill() {
-  ref=$1
-  archive_dir=$2
-  payload="$TMP_ROOT/payload-without-architecture-$ref"
-  rm -rf "$payload"
-  copy_valid_payload "$payload/loom-$ref"
-  rm -rf "$payload/loom-$ref/skills/loom-architecture"
-  mkdir -p "$archive_dir"
-  (cd "$payload" && tar -czf "$archive_dir/$ref.tar.gz" "loom-$ref")
-}
-
 make_invalid_archive() {
   ref=$1
   archive_dir=$2
@@ -432,15 +421,6 @@ JSON
   assert_not_exists "$home/.codex"
 }
 
-<<<<<<< Updated upstream
-test_remote_release_payload_requires_architecture_review_skill() {
-  project=$(make_project missing-architecture)
-  home=$(make_home missing-architecture)
-  metadata="$TMP_ROOT/releases-missing-architecture.json"
-  archives="$TMP_ROOT/archives-missing-architecture"
-  log="$TMP_ROOT/download-missing-architecture.log"
-  bootstrap=$(make_remote_script missing-architecture)
-=======
 test_accept_remote_payload_with_unfamiliar_skill_roster() {
   project=$(make_project skew-payload)
   home=$(make_home skew-payload)
@@ -448,17 +428,15 @@ test_accept_remote_payload_with_unfamiliar_skill_roster() {
   archives="$TMP_ROOT/archives-skew"
   log="$TMP_ROOT/download-skew.log"
   bootstrap=$(make_remote_script skew-payload)
->>>>>>> Stashed changes
 
   cat >"$metadata" <<'JSON'
 [
   {"tag_name":"v0.1.0","prerelease":false,"draft":false}
 ]
 JSON
-<<<<<<< Updated upstream
-  make_archive_without_architecture_skill "v0.1.0" "$archives"
+  make_skew_archive "v0.1.0" "$archives"
   : >"$log"
-  test_path=$(make_fake_download_bin missing-architecture "curl wget" "$metadata" "$archives" "$log")
+  test_path=$(make_fake_download_bin skew-payload "curl wget" "$metadata" "$archives" "$log")
 
   run_cmd env \
     HOME="$home" \
@@ -471,10 +449,11 @@ JSON
     --tools codex \
     --project "$project"
 
-  assert_status 1
-  assert_contains "$CURRENT_OUT" "Invalid Loom release archive for v0.1.0"
-  assert_contains "$log" "/archive/v0.1.0.tar.gz"
-  assert_dir_empty "$project"
+  assert_status 0
+  assert_not_contains "$CURRENT_OUT" "required payload files are missing"
+  assert_exists "$project/.codex/skills/loom-future/SKILL.md"
+  assert_exists "$project/docs/loom/project.md"
+  assert_contains "$project/AGENTS.md" "<!-- LOOM:START -->"
   assert_not_exists "$home/.codex"
 }
 
@@ -494,11 +473,6 @@ JSON
   make_valid_archive "v0.1.0" "$archives"
   : >"$log"
   test_path=$(make_fake_download_bin remote-architecture "curl wget" "$metadata" "$archives" "$log")
-=======
-  make_skew_archive "v0.1.0" "$archives"
-  : >"$log"
-  test_path=$(make_fake_download_bin skew-payload "curl wget" "$metadata" "$archives" "$log")
->>>>>>> Stashed changes
 
   run_cmd env \
     HOME="$home" \
@@ -512,18 +486,11 @@ JSON
     --project "$project"
 
   assert_status 0
-<<<<<<< Updated upstream
   assert_exists "$project/.codex/skills/loom-architecture/SKILL.md"
   assert_exists "$project/.codex/skills/loom-architecture/reference/HTML-REPORT.md"
   assert_exists "$project/docs/loom/project.md"
   assert_contains "$project/AGENTS.md" "<!-- LOOM:START -->"
   assert_not_exists "$home/.codex"
-=======
-  assert_not_contains "$CURRENT_OUT" "required payload files are missing"
-  assert_exists "$project/.codex/skills/loom-future/SKILL.md"
-  assert_exists "$project/docs/loom/project.md"
-  assert_contains "$project/AGENTS.md" "<!-- LOOM:START -->"
->>>>>>> Stashed changes
 }
 
 test_dry_run_remote_install_makes_no_project_or_user_install_changes() {
@@ -679,8 +646,6 @@ run_test "Accept a remote payload whose skill roster is unfamiliar" \
   test_accept_remote_payload_with_unfamiliar_skill_roster
 run_test "Reject an invalid remote payload" \
   test_reject_invalid_remote_payload
-run_test "Remote release payload requires the architecture review skill" \
-  test_remote_release_payload_requires_architecture_review_skill
 run_test "Remote install includes the architecture review skill" \
   test_remote_install_includes_architecture_review_skill
 run_test "Dry-run remote install makes no project or user install changes" \

@@ -105,18 +105,11 @@ payload_available() {
   [ -f "$dir/install.sh" ] || return 1
   [ -f "$dir/AGENTS.tmpl.md" ] || return 1
   [ -f "$dir/templates/project.md" ] || return 1
-<<<<<<< Updated upstream
-  [ -f "$dir/skills/loom-explore/SKILL.md" ] || return 1
-  [ -f "$dir/skills/loom-propose/SKILL.md" ] || return 1
-  [ -f "$dir/skills/loom-apply/SKILL.md" ] || return 1
-  [ -f "$dir/skills/loom-architecture/SKILL.md" ] || return 1
-=======
   [ -d "$dir/skills" ] || return 1
   for skill in "$dir"/skills/loom-*/SKILL.md; do
     [ -f "$skill" ] && return 0
   done
   return 1
->>>>>>> Stashed changes
 }
 
 download_to_stdout() {

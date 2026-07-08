@@ -12,12 +12,16 @@ How Loom installs and removes its skills, docs scaffold, and agent instructions.
   `LOOM_REF`.
   -> `test/install_test.sh::test_select_explicit_ref_for_remote_install` (added 2026-06-28)
 - Remote install fails before project or user install writes when no stable release exists, when the
-  selected archive is missing required payload files, when the selected archive omits the required
-  architecture review skill, or when neither `curl` nor `wget` is available.
+  selected archive is missing required payload files, or when neither `curl` nor `wget` is
+  available.
   -> `test/install_test.sh::test_fail_when_no_stable_release_exists`,
   `test/install_test.sh::test_reject_invalid_remote_payload`,
-  `test/install_test.sh::test_remote_release_payload_requires_architecture_review_skill`,
   `test/install_test.sh::test_fail_clearly_when_no_downloader_is_available` (added 2026-06-28)
+- Remote payload validation is structural: a release archive is accepted when it carries the
+  installer, templates, and at least one `loom-*` skill. The selected archive's own installer owns
+  the exact skill roster.
+  -> `test/install_test.sh::test_accept_remote_payload_with_unfamiliar_skill_roster`
+  (added 2026-07-08)
 - Remote install includes the required first-class Loom skills, including `loom-architecture`, and
   the normal Loom docs scaffold.
   -> `test/install_test.sh::test_remote_install_includes_architecture_review_skill`
