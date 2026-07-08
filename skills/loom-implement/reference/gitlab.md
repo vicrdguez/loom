@@ -1,0 +1,74 @@
+# Board: GitLab
+
+The **board** is issues, MRs, and four labels used to coordinate workers asynchronously. All three
+workers link here. GitLab calls them **merge requests (MRs)**; everywhere Loom says "PR," read "MR."
+MR create / update / draft state live in [loom-submit's gitlab reference](../../loom-submit/reference/gitlab.md);
+this file adds the board layer.
+
+CLI: [`glab`](https://gitlab.com/gitlab-org/cli). Token: the env var named in `project.md`'s
+`## Forge` section (commonly `GITLAB_TOKEN`) — `glab` reads it automatically. **Never read a token
+from `project.md`.**
+
+## The four labels
+
+`loom:ready` (issue → implementor) · `loom:review` (MR → reviewer) · `loom:rework` (MR →
+implementor) · `loom:done` (MR → human merges). One active board object per change (issue XOR MR);
+the implementor closes the issue when it opens the MR.
+
+## Ensure the four labels exist (idempotent)
+
+`glab label create` errors if the label exists, so ignore that error to stay idempotent:
+
+```sh
+for name in loom:ready loom:review loom:rework loom:done; do
+  glab label create --name "$name" --color "#0e8a16" 2>/dev/null || true
+done
+```
+
+## Publish — open a `loom:ready` issue (loom-propose)
+
+Push the branch first (`git push -u origin <slug>`), then a thin pointer issue:
+
+```sh
+glab issue create --title "<slug>" --label "loom:ready" \
+  --description "Change on branch \`<slug>\`. Brief: docs/loom/changes/<slug>/. Run /loom-implement."
+```
+
+## Claim work
+
+```sh
+glab issue list --label "loom:ready" --output json    # implementor: lowest iid is next
+glab mr    list --label "loom:review" --output json    # reviewer
+glab mr    list --label "loom:rework" --output json    # rework bounce (check out its source branch)
+```
+
+## Open the review MR and close the issue (loom-implement)
+
+Create the MR (loom-submit's gitlab reference), labeling it, then close the issue:
+
+```sh
+glab mr create --source-branch "<slug>" --target-branch main \
+  --title "<title>" --description "$(cat body.md)" --label "loom:review"
+glab issue close <issue-iid>
+```
+
+## Swap labels (rework ↔ review; review → done)
+
+```sh
+# reviewer bounces:  review → rework
+glab mr update <iid> --unlabel "loom:review" --label "loom:rework"
+# implementor re-presents:  rework → review
+glab mr update <iid> --unlabel "loom:rework" --label "loom:review"
+# reviewer passes:  review → done
+glab mr update <iid> --unlabel "loom:review" --label "loom:done"
+```
+
+## Feedback as MR comments (loom-review)
+
+The reviewer edits no code; findings are notes on the MR.
+
+```sh
+glab mr note <iid> --message "$(cat findings.md)"
+```
+
+The implementor reads the bounce with `glab mr view <iid> --comments`.
