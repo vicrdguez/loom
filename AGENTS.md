@@ -15,7 +15,21 @@ drift); the documents are how humans and agents stay oriented.
   (always); `plan.md`, `tasks.md` (when warranted).
 - `/loom-apply` — build it test-first from the Gherkin scenarios, commit per slice, update the
   capability doc, record `acceptance.md`.
+- `/loom-review` — re-verify independently and code-review guilty-until-proven; a **standing model
+  stage** run in a **fresh context**. Pass → land + `loom:done`; fail → bounce (`loom:rework`, feedback
+  as PR comments), editing no code.
 - `/loom-submit` — verify, archive, and open the PR; the PR review is the human acceptance gate.
+
+**Two topologies** (per change, no mode flag — emergent from what you run):
+- **Single-model** (default): one model + the human fills every role, handing off sequentially. Only
+  rule added: `review` runs in a fresh context (a separate `/loom-review` or a spawned sub-agent).
+- **Multi-model**: distinct models fill the roles, coordinating through the **forge board** — issues,
+  PRs, and four labels: `loom:ready` (issue → implementor), `loom:review` (PR → reviewer), `loom:rework`
+  (PR → implementor), `loom:done` (PR → human merges). `/loom-propose` publishes on demand (push branch
+  + open a `loom:ready` issue); `/loom-implement` (the implementor worker) claims it, builds by
+  composing `loom-apply`, and opens a PR marked `loom:review`; `/loom-review` blesses or bounces. Each
+  worker processes one change per invocation and exits; the harness's scheduler re-fires it fresh. Loom
+  ships no runtime. See ADR-0003.
 
 **Foundational skills** (composed by the loop, or run standalone — e.g. to ground a brownfield repo):
 `/loom-domain` (sharpen the glossary + ADRs) and `/loom-design` (deep, testable module shapes).
@@ -41,6 +55,12 @@ drift); the documents are how humans and agents stay oriented.
 - Decisions are pinned in `plan.md` during propose, so implementation makes no important new ones.
 - The **PR review is the acceptance gate**: `loom-submit` archives on green and opens the PR; merging
   it accepts the change and lands the archive on `main`. `loom-apply` never touches `main` or remotes.
+- **Trust boundary**: the model that built a change never verifies, archives, or blesses it. Review is
+  a **standing model stage** run outside the build context — a different model in multi-model, a fresh
+  context of the same model in single-model. In multi-model, `loom-implement` only presents work and
+  `loom-review` holds the whole verify+archive+bless gate (re-running verification, never trusting the
+  builder's green suite) and edits no code — forge writes are distributed across workers, not owned by
+  one skill.
 - `intent.md` is frozen after propose; post-implementation human checks live in `acceptance.md`.
 
 The `/loom-*` skills are directly invokable and carry the detailed formats.

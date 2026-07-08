@@ -43,12 +43,56 @@ Run `/loom-init` once in a project, then per change:
 | `/loom-explore` | The thinking. Grill the change, then use `loom-domain` and `loom-design` to sharpen the language and settle the module shapes. |
 | `/loom-propose` | Cut the change branch (a git worktree), then write the brief: `intent.md` and `behavior.md` (Gherkin), plus `plan.md` and `tasks.md` when the change is big enough to need them. |
 | `/loom-apply` | Build it test-first from the scenarios, commit per slice, update the capability doc, and record `acceptance.md` (the human-checkable steps). |
+| `/loom-review` | Re-verify independently and code-review guilty-until-proven — a standing model stage run in a **fresh context**, before the human. Pass → land + `loom:done`; fail → bounce with feedback, editing no code. |
 | `/loom-submit` | Verify, archive, and open a PR. The PR review is the human acceptance gate — merging it accepts the change and lands the archive on `main`. |
 
 `explore` and `propose` are the interactive, think-hard stages. `apply` builds each change in its own
 worktree and `submit` opens the PR, so `apply → submit` can run unattended — even several changes in
 parallel — with the human gate at PR merge. Since the decisions are already written down in `plan.md`,
 `apply` is the part you can hand to a cheaper model.
+
+**Review is a standing stage, not just verification.** A model reviews; the human accepts. `loom-review`
+re-runs the mechanical verify itself (it never trusts the builder's green suite) and adds an
+adversarial, guilty-until-proven code read — judging whether each test would actually fail if the
+behavior broke, grounded in the target project's own quality skills. Its one rule: it runs in a **fresh
+context**, so a model never blesses work in the same context that wrote it.
+
+## Two topologies
+
+Loom's pipeline is one set of stages — explore → propose → build → review → land — run under one of two
+**topologies**. There is **no mode flag**: topology is chosen **per change**, and emerges from what you
+run.
+
+- **Single-model** (the default): one model plus the human fills every role, handing off sequentially.
+  Nothing changes from the table above — except that `review` runs in a fresh context (a separate
+  `/loom-review` invocation or a spawned reviewer sub-agent) before you land. Ceremony-free: no board,
+  no roles.
+- **Multi-model**: distinct models fill the roles — a planner (explore/propose), an **implementor**
+  worker (build), and a **reviewer** worker (review) — coordinating asynchronously through the **forge
+  board**, with the human's merge as the final gate. Each worker processes one change per invocation
+  and exits; the harness's own scheduler re-fires it with a fresh context. Loom ships no runtime.
+
+The **keystone** is the trust boundary: *the model that built a change never verifies, archives, or
+blesses it.* That is what makes a cheaper or foreign implementor safe — and it is why review must run
+outside the build context (a different model in multi-model; at minimum a fresh context of the same
+model in single-model).
+
+### The board and its four labels
+
+In the multi-model topology, workers coordinate through the forge's issues, PRs, and four labels:
+
+| Label | Rides on | Awaiting |
+|---|---|---|
+| `loom:ready` | issue | an **implementor** to build it |
+| `loom:review` | PR | a **reviewer** to judge it |
+| `loom:rework` | PR | the **implementor** to address feedback |
+| `loom:done` | PR | the **human** to merge (acceptance) |
+
+`/loom-propose` publishes a change on demand (push the branch + open a `loom:ready` issue pointing to
+the brief); `/loom-implement` claims a `loom:ready` issue, builds it by composing `loom-apply`, and
+opens a PR marked `loom:review`; `/loom-review` verifies independently and either lands it (`loom:done`)
+or bounces it (`loom:rework`, feedback as PR comments). Publishing reuses the existing `## Forge` config
+— no new setup. See [ADR-0003](docs/adr/0003-multi-model-topology-via-board-workers.md).
 
 ### Discovery and foundational skills
 
