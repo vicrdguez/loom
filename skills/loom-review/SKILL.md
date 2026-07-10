@@ -62,10 +62,11 @@ sufficient — weak tests pass too.
   `project.md`, they are the standard, not your taste.
 - Read the diff for the ordinary defects too: correctness, edge cases, missed scenarios, mocking the
   code under test, plan drift against `plan.md`.
+- Apply the principles from `loom/design` and `loom/domain`
 
-**Independent test re-derivation** — writing the tests yourself from `behavior.md` and diffing intent —
-is an **opt-in escalation** for high-stakes changes, not the default. The standing default is this
-adversarial test-strength read.
+If the change is high-stakes or considered critical you can do an **Independent test re-implementation**, writing the
+tests yourself from `behavior.md` and diffing intent. However,  is an **opt-in escalation**  that should be requested
+by the user explicitly, not the default. The standing default is this adversarial test-strength read.
 
 ## Pass → land and mark done
 

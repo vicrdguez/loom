@@ -18,7 +18,8 @@ build is the board handshake: claim, branch, push, present.
 verification gate, never archives, and never applies `loom:done`. Blessing a change is `loom-review`'s
 job, in a different context — that separation is what makes a foreign or cheaper implementor safe to
 trust. If you catch yourself wanting to "just verify it's green and mark it done," stop: that is the
-reviewer's role.
+reviewer's role. However, that does not mean that code implemented should be pushed mindlessly and aimlessly,
+focus on correctness and capturing the change intent.
 
 ## Board operations
 
