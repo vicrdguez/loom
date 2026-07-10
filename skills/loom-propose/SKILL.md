@@ -76,7 +76,7 @@ picks the change up from the worktree exactly as before.
 **Publish only on an explicit request** ("publish it", "put it on the board", "hand it to an
 implementor"). Publishing is what makes a change's build stage multi-model: it hands the change to an
 implementor worker through the forge board. There is **no mode flag** — topology is per change and
-emergent from whether you publish (see ADR-0003). Publishing reuses the existing `## Forge` section
+emergent from whether you publish. Publishing reuses the existing `## Forge` section
 of `docs/loom/project.md` — it needs **no new config** in the body or frontmatter.
 
 When asked to publish, after the brief is committed on the branch:

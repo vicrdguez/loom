@@ -29,7 +29,7 @@ drift); the documents are how humans and agents stay oriented.
   + open a `loom:ready` issue); `/loom-implement` (the implementor worker) claims it, builds by
   composing `loom-apply`, and opens a PR marked `loom:review`; `/loom-review` blesses or bounces. Each
   worker processes one change per invocation and exits; the harness's scheduler re-fires it fresh. Loom
-  ships no runtime. See ADR-0003.
+  ships no runtime.
 
 **Foundational skills** (composed by the loop, or run standalone — e.g. to ground a brownfield repo):
 `/loom-domain` (sharpen the glossary + ADRs) and `/loom-design` (deep, testable module shapes).

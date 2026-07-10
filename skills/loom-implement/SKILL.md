@@ -5,7 +5,7 @@ description: The implementor worker in Loom's multi-model topology — claim a l
 
 # loom-implement
 
-The **implementor worker** in the multi-model topology (see ADR-0003). It fills the *build* role by
+The **implementor worker** in the multi-model topology. It fills the *build* role by
 processing exactly one change per invocation off the **forge board**, then exiting — the harness's
 own scheduler re-fires it with a fresh context for the next change. Loom ships no runtime; this skill
 defines only the worker's behavior.

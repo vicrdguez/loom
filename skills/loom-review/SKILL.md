@@ -5,7 +5,7 @@ description: The reviewer stage in Loom — claim a loom:review PR, re-run the m
 
 # loom-review
 
-The **review stage** — a *standing model stage in both topologies* (see ADR-0003). Review is not
+The **review stage** — a *standing model stage in both topologies*. Review is not
 mechanical verification alone: it is an adversarial, guilty-until-proven code review that earns its
 place before the human even when one model did everything. It sits between build and the human's
 merge: a **model** reviews; the **human** accepts.
