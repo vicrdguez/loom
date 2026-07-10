@@ -67,6 +67,39 @@ project's own framework.
 - Scenarios describe behavior through a public interface, not internal state.
 - `plan.md` pins exactly the decisions you don't want made at code time — no more, no less.
 
+## Publish to the board (only when asked)
+
+By default propose is **local**: it writes the brief on the change branch and stops. Nothing is
+pushed and no issue is opened — the single-model flow is byte-for-byte unchanged, so `/loom-apply`
+picks the change up from the worktree exactly as before.
+
+**Publish only on an explicit request** ("publish it", "put it on the board", "hand it to an
+implementor"). Publishing is what makes a change's build stage multi-model: it hands the change to an
+implementor worker through the forge board. There is **no mode flag** — topology is per change and
+emergent from whether you publish. Publishing reuses the existing `## Forge` section
+of `docs/loom/project.md` — it needs **no new config** in the body or frontmatter.
+
+When asked to publish, after the brief is committed on the branch:
+
+1. **Ensure the four labels exist** on the forge (`loom:ready`, `loom:review`, `loom:rework`,
+   `loom:done`) — idempotent, a no-op when they already exist.
+2. **Push the change branch** to the forge.
+3. **Open a `loom:ready` issue** whose body **points to the brief on the branch** (path under
+   `docs/loom/changes/<slug>/`) rather than duplicating it — a thin pointer an implementor worker
+   claims with `/loom-implement`.
+
+Every forge command comes from the per-forge board reference, keyed off the `## Forge` host (token via
+env var, never from `project.md`):
+
+- GitHub → [loom-implement/reference/github.md](../loom-implement/reference/github.md)
+- Codeberg / Forgejo / Gitea → [loom-implement/reference/codeberg.md](../loom-implement/reference/codeberg.md)
+- GitLab → [loom-implement/reference/gitlab.md](../loom-implement/reference/gitlab.md)
+
+(These install alongside `loom-propose` — the whole `loom-*` set installs together — so the shared
+board commands live in one place.)
+
 ## Hand-off
 
-"Review the brief, then run `/loom-apply`."
+- **Local (default):** "Review the brief, then run `/loom-apply`."
+- **Published:** report the issue URL and its `loom:ready` label. An implementor worker claims it on
+  its next firing, or run `/loom-implement` to build it.
