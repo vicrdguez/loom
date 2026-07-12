@@ -19,12 +19,12 @@
 - [x] B16 Describe Progress without inventing completion                     → behavior.md §4/1
 - [x] B17 Reconstruct lanes after restart                                    → behavior.md §4/2
 - [x] B18 Retain only bounded filtered Activity history                      → behavior.md §4/3
-- [ ] B19 Adapt the lane layout to terminal width                            → behavior.md §5/1
-- [ ] B20 Separate status, evidence, and Activity in each lane                → behavior.md §5/2
+- [x] B19 Adapt the lane layout to terminal width                            → behavior.md §5/1
+- [x] B20 Separate status, evidence, and Activity in each lane                → behavior.md §5/2
 - [x] B21 Navigate and inspect state through Console commands                 → behavior.md §5/3
 - [x] B22 Configure model policy locally                                     → behavior.md §5/4
 - [x] B23 Reject shell and workflow mutation commands                        → behavior.md §5/5
-- [ ] B24 Open long results in the inspector                                 → behavior.md §5/6
+- [x] B24 Open long results in the inspector                                 → behavior.md §5/6
 - [ ] B25 Resolve and install the CLI artifact for supported hosts           → behavior.md §6/1
 - [ ] B26 Leave the CLI untouched without the opt-in flag                    → behavior.md §6/2
 - [ ] B27 Preserve dry-run and uninstall semantics for the CLI               → behavior.md §6/3
@@ -35,7 +35,7 @@
 
 ## Chores
 - [ ] C1  Scaffold the root Mix/OTP application, ExRatatui dependency, formatter, and release entrypoint
-- [ ] C2  Add fake Harness/Board adapters, captured Codex JSONL fixtures, temporary-repo helpers, and
+- [x] C2  Add fake Harness/Board adapters, captured Codex JSONL fixtures, temporary-repo helpers, and
           ExRatatui headless test support
 - [x] C3  Wire OTP supervision so UI exit stops lanes/Workers and no Worker can outlive the Console
 - [ ] C4  Add platform release configuration and GitHub Actions build/smoke matrix for four CLI assets
