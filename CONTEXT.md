@@ -83,10 +83,16 @@ _Avoid_: Phase, step
 **Topology**:
 How the pipeline's roles are assigned and coordinated for a change. **Single-model** (the default):
 every role collapses onto one model plus the human, handing off sequentially in one context.
-**Multi-model**: planner, implementor, and reviewer are distinct models coordinated through the
-board. Chosen **per change, not per project** — there is no mode flag; you publish a change to the
-board and run workers to hand it off, or you don't. Topology is emergent from what you run.
+**Board topology**: planner, implementor, and reviewer Roles are filled by Workers coordinated
+through the Board, with every Worker invocation receiving a fresh context. Chosen **per change, not
+per project** — there is no mode flag; you publish a change to the Board and run Workers to hand it
+off, or you don't. Topology is emergent from what you run.
 _Avoid_: Mode, flow
+
+**Model diversity**:
+Using different model configurations for different Roles in the Board topology. It strengthens
+independence but is optional; fresh Worker contexts are the trust invariant.
+_Avoid_: Multi-model topology, trust boundary
 
 **Role**:
 The function a participant fills at a stage — planner (explore/propose), implementor (build),
@@ -96,20 +102,52 @@ _Avoid_: Persona, agent
 
 **Worker**:
 A single-model agent that fills one role by processing exactly one change per invocation and then
-exiting; the harness's own scheduler re-fires it with a fresh context. Exists only in the
-multi-model topology.
+exiting; a scheduler re-fires it with a fresh context, with the Worker console providing Loom's
+first-party scheduler. Exists only in the Board topology.
 _Avoid_: Daemon, bot, agent
+
+**Worker specification**:
+The Worker console's Harness-neutral description of how to create a Worker for one Role. A Harness
+translates it for execution but remains responsible for authentication and credentials.
+_Avoid_: Profile, command template
+
+**Worker console**:
+The human-operated Loom runtime that supervises Board-topology Worker invocations while presenting
+each Role separately. It coordinates Workers but never fills a Role or crosses the trust boundary.
+_Avoid_: Orchestrator, command center
+
+**Role lane**:
+A persistent place in the Worker console assigned to one Role and spanning successive Worker
+invocations. It has at most one active Worker and remains visible while idle or after completion.
+_Avoid_: Worker pane, process pane
+
+**Progress evidence**:
+Durable, externally observable state the Worker console uses to report advancement, including
+Worker lifecycle, Board state, completed Change tasks, and slice commits. Worker narration is not
+Progress evidence.
+_Avoid_: Progress log, model-reported progress
+
+**Activity message**:
+A human-readable Worker update about its current action, shown for operator context but never used
+as proof of progress.
+_Avoid_: Status, progress event
+
+**Console command**:
+A deterministic operator request handled locally by the Worker console to inspect Progress evidence
+or control a Role lane. It is never sent to a Worker or another model for interpretation and never
+alters a Change, Board object, or repository history.
+_Avoid_: Prompt, chat command
 
 **Board**:
 The forge's issues, PRs, and labels used as the asynchronous coordination medium between workers in
-the multi-model topology. Four labels carry a change's lifecycle: `loom:ready` (issue awaiting an
+the Board topology. Four labels carry a change's lifecycle: `loom:ready` (issue awaiting an
 implementor), `loom:review` (PR awaiting a reviewer), `loom:rework` (PR bounced back), `loom:done`
 (PR awaiting the human's merge).
 _Avoid_: Queue, tracker
 
 **Change issue**:
 The forge issue that publishes a proposed change to the board so an implementor worker can claim it;
-it carries or links the change brief. Created by `loom-propose` in the multi-model topology only.
+it carries or links the change brief. Created by `loom-propose` in the Board topology only.
 _Avoid_: Ticket
 
 ## Example Dialogue

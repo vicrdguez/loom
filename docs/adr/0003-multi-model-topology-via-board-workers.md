@@ -1,5 +1,8 @@
 # Multi-Model Changes Run as Board-Coordinated Workers
 
+**Status:** Accepted, except for the "Loom ships no runtime" scheduling decision superseded by ADR
+0004 and the multi-model naming/model-diversity requirement superseded by ADR 0006.
+
 Loom's loop is **one pipeline of stages** — explore → propose → build → review → land — run under one
 of two **topologies**. **Review is a standing model stage in both topologies**: `loom-review` is not
 mechanical verification alone but an adversarial, guilty-until-proven code review, so it earns its
