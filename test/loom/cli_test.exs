@@ -39,6 +39,7 @@ defmodule Loom.CLITest do
 
   test "version entrypoint is local and non-interactive" do
     assert CLI.main(["--version"]) == 0
+    assert CLI.main(["--", "--version"]) == 0
   end
 
   defp temporary_project do

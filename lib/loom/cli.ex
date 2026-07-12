@@ -7,6 +7,8 @@ defmodule Loom.CLI do
 
   @required_flags ~w(--json --ephemeral --model --sandbox --cd)
 
+  def main(["--" | args]), do: main(args)
+
   def main(["--version"]) do
     IO.puts("loom #{version()}")
     0
