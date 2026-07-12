@@ -3,7 +3,7 @@
 ## Behavioral
 - [ ] B1  Configure Worker specifications on first launch                    → behavior.md §1/1
 - [ ] B2  Allow matching models with a Model diversity warning              → behavior.md §1/2
-- [ ] B3  Enforce exclusive ownership and recover stale locks               → behavior.md §1/3
+- [x] B3  Enforce exclusive ownership and recover stale locks               → behavior.md §1/3
 - [ ] B4  Fail capability preflight with an actionable diagnostic           → behavior.md §1/4
 - [ ] B5  Launch one fresh Worker for claimable Role work                    → behavior.md §2/1
 - [ ] B6  Remain visible and idle without claimable work                     → behavior.md §2/2
@@ -18,7 +18,7 @@
 - [x] B15 Normalize only useful Codex JSONL events                           → behavior.md §3/2
 - [x] B16 Describe Progress without inventing completion                     → behavior.md §4/1
 - [ ] B17 Reconstruct lanes after restart                                    → behavior.md §4/2
-- [ ] B18 Retain only bounded filtered Activity history                      → behavior.md §4/3
+- [x] B18 Retain only bounded filtered Activity history                      → behavior.md §4/3
 - [ ] B19 Adapt the lane layout to terminal width                            → behavior.md §5/1
 - [ ] B20 Separate status, evidence, and Activity in each lane                → behavior.md §5/2
 - [ ] B21 Navigate and inspect state through Console commands                 → behavior.md §5/3
