@@ -16,7 +16,7 @@
 - [ ] B13 Quit safely while a Worker is active                               → behavior.md §2/9
 - [ ] B14 Translate a Worker specification without a Codex profile           → behavior.md §3/1
 - [x] B15 Normalize only useful Codex JSONL events                           → behavior.md §3/2
-- [ ] B16 Describe Progress without inventing completion                     → behavior.md §4/1
+- [x] B16 Describe Progress without inventing completion                     → behavior.md §4/1
 - [ ] B17 Reconstruct lanes after restart                                    → behavior.md §4/2
 - [ ] B18 Retain only bounded filtered Activity history                      → behavior.md §4/3
 - [ ] B19 Adapt the lane layout to terminal width                            → behavior.md §5/1
