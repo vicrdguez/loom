@@ -4,7 +4,7 @@
 - [x] B1  Configure Worker specifications on first launch                    → behavior.md §1/1
 - [x] B2  Allow matching models with a Model diversity warning              → behavior.md §1/2
 - [x] B3  Enforce exclusive ownership and recover stale locks               → behavior.md §1/3
-- [ ] B4  Fail capability preflight with an actionable diagnostic           → behavior.md §1/4
+- [x] B4  Fail capability preflight with an actionable diagnostic           → behavior.md §1/4
 - [x] B5  Launch one fresh Worker for claimable Role work                    → behavior.md §2/1
 - [x] B6  Remain visible and idle without claimable work                     → behavior.md §2/2
 - [x] B7  Prefer implementor rework before ready work                        → behavior.md §2/3
@@ -34,7 +34,7 @@
 - [ ] B31 Replace superseded workflow language with Board-topology terms     → behavior.md §7/1
 
 ## Chores
-- [ ] C1  Scaffold the root Mix/OTP application, ExRatatui dependency, formatter, and release entrypoint
+- [x] C1  Scaffold the root Mix/OTP application, ExRatatui dependency, formatter, and release entrypoint
 - [x] C2  Add fake Harness/Board adapters, captured Codex JSONL fixtures, temporary-repo helpers, and
           ExRatatui headless test support
 - [x] C3  Wire OTP supervision so UI exit stops lanes/Workers and no Worker can outlive the Console
