@@ -14,7 +14,7 @@
 - [ ] B11 Do not terminate a silent Worker automatically                     → behavior.md §2/7
 - [ ] B12 Apply deterministic lane-control commands                          → behavior.md §2/8
 - [ ] B13 Quit safely while a Worker is active                               → behavior.md §2/9
-- [ ] B14 Translate a Worker specification without a Codex profile           → behavior.md §3/1
+- [x] B14 Translate a Worker specification without a Codex profile           → behavior.md §3/1
 - [x] B15 Normalize only useful Codex JSONL events                           → behavior.md §3/2
 - [x] B16 Describe Progress without inventing completion                     → behavior.md §4/1
 - [ ] B17 Reconstruct lanes after restart                                    → behavior.md §4/2
