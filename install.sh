@@ -14,8 +14,10 @@ PROJECT="$PWD"
 UNINSTALL=0
 FORCE=0
 DRYRUN=0
+CLI=0
 CLI_REF=""
 LOOM_REF=${LOOM_REF:-}
+LOOM_RELEASE_REF=${LOOM_RELEASE_REF:-}
 REMOTE_TMP=""
 
 case $0 in
@@ -36,6 +38,7 @@ Options:
   --global         Install skills into user-level dirs instead of the project
   --project DIR    Target project root (default: current directory)
   --ref REF        Install an explicit release tag or branch when running remotely
+  --cli            Also install the version-matched user-level Worker console
   --uninstall      Remove loom-* skills and the AGENTS.md block (leaves docs/ and CONTEXT.md)
   --force          Overwrite scaffolded files (e.g. docs/loom/project.md) that already exist
   --dry-run        Print what would happen; change nothing
@@ -71,6 +74,7 @@ parse_args() {
       --project=*) PROJECT=${1#*=}; shift ;;
       --ref) CLI_REF=${2:?--ref needs a value}; shift 2 ;;
       --ref=*) CLI_REF=${1#*=}; shift ;;
+      --cli) CLI=1; shift ;;
       --uninstall) UNINSTALL=1; shift ;;
       --force) FORCE=1; shift ;;
       --dry-run) DRYRUN=1; shift ;;
@@ -214,7 +218,7 @@ remote_bootstrap() {
     die "Invalid Loom release archive for $ref: required payload files are missing."
 
   set +e
-  sh "$payload_dir/install.sh" "$@"
+  LOOM_RELEASE_REF=$ref sh "$payload_dir/install.sh" "$@"
   status=$?
   set -e
   exit "$status"
@@ -333,6 +337,79 @@ ensure_claude_import() {
   fi
 }
 
+resolve_cli_version() {
+  ref=$LOOM_RELEASE_REF
+  [ -n "$ref" ] || ref=$CLI_REF
+  [ -n "$ref" ] || ref=$LOOM_REF
+
+  case $ref in
+    v[0-9]*.[0-9]*.[0-9]*) printf '%s\n' "$ref" ;;
+    *) die "Prebuilt CLI installation requires a published Loom release tag (for example v1.2.3); development branches and unversioned checkouts have no matching artifact." ;;
+  esac
+}
+
+resolve_cli_platform() {
+  raw_os=$(uname -s)
+  raw_arch=$(uname -m)
+
+  case $raw_os in
+    Darwin) cli_os=macos ;;
+    Linux) cli_os=linux ;;
+    *) die "Unsupported CLI host: $raw_os $raw_arch" ;;
+  esac
+
+  case $raw_arch in
+    arm64|aarch64) cli_arch=arm64 ;;
+    x86_64|amd64) cli_arch=x86_64 ;;
+    *) die "Unsupported CLI host: $raw_os $raw_arch" ;;
+  esac
+
+  printf '%s %s\n' "$cli_os" "$cli_arch"
+}
+
+install_cli() {
+  version=$(resolve_cli_version)
+  set -- $(resolve_cli_platform)
+  os=$1
+  arch=$2
+  artifact="loom-$version-$os-$arch.tar.gz"
+  url="$GITHUB_URL/$LOOM_REPO/releases/download/$version/$artifact"
+  data_root=${XDG_DATA_HOME:-"$HOME/.local/share"}
+  bin_root=${XDG_BIN_HOME:-"$HOME/.local/bin"}
+  target="$data_root/loom/$version"
+  launcher="$bin_root/loom"
+
+  say "CLI $version ($os/$arch) -> $launcher"
+
+  if [ "$DRYRUN" -eq 1 ]; then
+    say "  [dry-run] download $url"
+    say "  [dry-run] install release in $target"
+    return 0
+  fi
+
+  cli_tmp=$(mktemp -d "${TMPDIR:-/tmp}/loom-cli-install.XXXXXX") ||
+    die "Failed to create a temporary directory for CLI installation."
+  download_to_stdout "$url" >"$cli_tmp/$artifact"
+  mkdir -p "$target" "$bin_root"
+  tar -xzf "$cli_tmp/$artifact" -C "$target" || die "Failed to extract CLI artifact $artifact."
+  rm -rf "$cli_tmp"
+  [ -x "$target/bin/loom_console" ] || die "CLI artifact $artifact is missing bin/loom_console."
+
+  printf '%s\n' \
+    '#!/bin/sh' \
+    "exec \"$target/bin/loom_console\" eval 'System.halt(Loom.CLI.main(System.argv()))' -- \"\$@\"" \
+    >"$launcher"
+  chmod +x "$launcher"
+}
+
+uninstall_cli() {
+  data_root=${XDG_DATA_HOME:-"$HOME/.local/share"}
+  bin_root=${XDG_BIN_HOME:-"$HOME/.local/bin"}
+  say "Remove CLI -> $bin_root/loom"
+  run rm -f "$bin_root/loom"
+  run rm -rf "$data_root/loom"
+}
+
 main() {
   parse_args "$@"
   validate_tools
@@ -351,6 +428,7 @@ main() {
   if [ "$UNINSTALL" -eq 1 ]; then
     uninstall_skills
     strip_agents
+    [ "$CLI" -eq 1 ] && uninstall_cli
     say ""
     say "Uninstalled Loom skills and AGENTS.md block. docs/ and CONTEXT.md were left untouched."
     exit 0
@@ -361,6 +439,7 @@ main() {
   scaffold_project
   inject_agents
   ensure_claude_import
+  [ "$CLI" -eq 1 ] && install_cli
 
   say ""
   say "Done. Next: run /loom-init in your agent to bootstrap this project."

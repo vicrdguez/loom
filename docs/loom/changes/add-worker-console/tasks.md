@@ -25,12 +25,12 @@
 - [x] B22 Configure model policy locally                                     → behavior.md §5/4
 - [x] B23 Reject shell and workflow mutation commands                        → behavior.md §5/5
 - [x] B24 Open long results in the inspector                                 → behavior.md §5/6
-- [ ] B25 Resolve and install the CLI artifact for supported hosts           → behavior.md §6/1
-- [ ] B26 Leave the CLI untouched without the opt-in flag                    → behavior.md §6/2
-- [ ] B27 Preserve dry-run and uninstall semantics for the CLI               → behavior.md §6/3
-- [ ] B28 Reject an unsupported CLI host clearly                             → behavior.md §6/4
-- [ ] B29 Reject CLI install without a versioned release artifact            → behavior.md §6/5
-- [ ] B30 Publish and smoke-test every version-matched CLI artifact          → behavior.md §6/6
+- [x] B25 Resolve and install the CLI artifact for supported hosts           → behavior.md §6/1
+- [x] B26 Leave the CLI untouched without the opt-in flag                    → behavior.md §6/2
+- [x] B27 Preserve dry-run and uninstall semantics for the CLI               → behavior.md §6/3
+- [x] B28 Reject an unsupported CLI host clearly                             → behavior.md §6/4
+- [x] B29 Reject CLI install without a versioned release artifact            → behavior.md §6/5
+- [x] B30 Publish and smoke-test every version-matched CLI artifact          → behavior.md §6/6
 - [ ] B31 Replace superseded workflow language with Board-topology terms     → behavior.md §7/1
 
 ## Chores
@@ -38,8 +38,8 @@
 - [x] C2  Add fake Harness/Board adapters, captured Codex JSONL fixtures, temporary-repo helpers, and
           ExRatatui headless test support
 - [x] C3  Wire OTP supervision so UI exit stops lanes/Workers and no Worker can outlive the Console
-- [ ] C4  Add platform release configuration and GitHub Actions build/smoke matrix for four CLI assets
-- [ ] C5  Extend POSIX `install.sh` and dependency-free shell tests with opt-in user-level `--cli`
+- [x] C4  Add platform release configuration and GitHub Actions build/smoke matrix for four CLI assets
+- [x] C5  Extend POSIX `install.sh` and dependency-free shell tests with opt-in user-level `--cli`
 - [ ] C6  Update `docs/loom/project.md` with Mix test/build/format commands alongside installer tests
 
 ## Docs

@@ -232,6 +232,48 @@ SH
   printf '%s:%s\n' "$dir" "$(make_system_bin "$name")"
 }
 
+make_cli_artifact() {
+  version=$1
+  os=$2
+  arch=$3
+  archive_dir=$4
+  payload="$TMP_ROOT/cli-$version-$os-$arch"
+  rm -rf "$payload"
+  mkdir -p "$payload/bin" "$archive_dir"
+  printf '#!/bin/sh\nprintf "loom %s\\n"\n' "$version" >"$payload/bin/loom_console"
+  chmod +x "$payload/bin/loom_console"
+  (cd "$payload" && tar -czf "$archive_dir/loom-$version-$os-$arch.tar.gz" .)
+}
+
+make_cli_download_bin() {
+  name=$1
+  artifact_dir=$2
+  log=$3
+  dir="$TMP_ROOT/bin-cli-$name"
+  mkdir -p "$dir"
+
+  cat >"$dir/curl" <<'SH'
+#!/bin/sh
+url=
+for arg in "$@"; do url=$arg; done
+printf '%s\n' "$url" >>"$LOOM_TEST_LOG"
+artifact=${url##*/}
+cat "$LOOM_TEST_ARTIFACT_DIR/$artifact"
+SH
+
+  cat >"$dir/uname" <<'SH'
+#!/bin/sh
+case ${1:-} in
+  -s) printf '%s\n' "$LOOM_TEST_UNAME_S" ;;
+  -m) printf '%s\n' "$LOOM_TEST_UNAME_M" ;;
+  *) printf '%s\n' "$LOOM_TEST_UNAME_S" ;;
+esac
+SH
+
+  chmod +x "$dir/curl" "$dir/uname"
+  printf '%s:%s\n' "$dir" "$(make_system_bin "cli-$name")"
+}
+
 test_checkout_install_includes_architecture_review_skill() {
   project=$(make_project local-install)
   home=$(make_home local-install)
@@ -634,6 +676,126 @@ test_fail_clearly_when_no_downloader_is_available() {
   assert_not_exists "$home/.codex"
 }
 
+test_install_cli_artifact_for_supported_hosts() {
+  version=v1.2.3
+  artifacts="$TMP_ROOT/cli-artifacts"
+  log="$TMP_ROOT/cli-download.log"
+  : >"$log"
+
+  for tuple in "Darwin arm64 macos arm64" "Darwin x86_64 macos x86_64" \
+               "Linux aarch64 linux arm64" "Linux x86_64 linux x86_64"; do
+    set -- $tuple
+    uname_s=$1
+    uname_m=$2
+    os=$3
+    arch=$4
+    make_cli_artifact "$version" "$os" "$arch" "$artifacts"
+    project=$(make_project "cli-$os-$arch")
+    home=$(make_home "cli-$os-$arch")
+    test_path=$(make_cli_download_bin "$os-$arch" "$artifacts" "$log")
+
+    run_cmd env HOME="$home" XDG_DATA_HOME="$home/.local/share" XDG_BIN_HOME="$home/.local/bin" PATH="$test_path" \
+      LOOM_TEST_ARTIFACT_DIR="$artifacts" LOOM_TEST_LOG="$log" \
+      LOOM_TEST_UNAME_S="$uname_s" LOOM_TEST_UNAME_M="$uname_m" \
+      "$SH_BIN" "$ROOT/install.sh" --cli --ref "$version" --tools codex --project "$project"
+
+    assert_status 0
+    assert_contains "$log" "/releases/download/$version/loom-$version-$os-$arch.tar.gz"
+    assert_exists "$home/.local/bin/loom"
+    assert_exists "$home/.local/share/loom/$version/bin/loom_console"
+  done
+}
+
+test_cli_is_untouched_without_opt_in() {
+  project=$(make_project cli-opt-out)
+  home=$(make_home cli-opt-out)
+  failbin=$(make_failing_remote_bin cli-opt-out)
+
+  run_cmd env HOME="$home" XDG_DATA_HOME="$home/.local/share" XDG_BIN_HOME="$home/.local/bin" PATH="$failbin:$PATH" "$SH_BIN" "$ROOT/install.sh" \
+    --tools codex --project "$project"
+
+  assert_status 0
+  assert_not_exists "$home/.local/bin/loom"
+  assert_not_exists "$home/.local/share/loom"
+}
+
+test_cli_dry_run_and_uninstall_are_symmetric() {
+  version=v1.2.3
+  artifacts="$TMP_ROOT/cli-lifecycle-artifacts"
+  log="$TMP_ROOT/cli-lifecycle.log"
+  make_cli_artifact "$version" macos arm64 "$artifacts"
+  : >"$log"
+  project=$(make_project cli-lifecycle)
+  home=$(make_home cli-lifecycle)
+  test_path=$(make_cli_download_bin lifecycle "$artifacts" "$log")
+
+  run_cmd env HOME="$home" XDG_DATA_HOME="$home/.local/share" XDG_BIN_HOME="$home/.local/bin" PATH="$test_path" LOOM_TEST_ARTIFACT_DIR="$artifacts" \
+    LOOM_TEST_LOG="$log" LOOM_TEST_UNAME_S=Darwin LOOM_TEST_UNAME_M=arm64 \
+    "$SH_BIN" "$ROOT/install.sh" --cli --ref "$version" --dry-run --tools codex --project "$project"
+  assert_status 0
+  assert_not_exists "$home/.local/bin/loom"
+  assert_not_exists "$home/.local/share/loom"
+
+  run_cmd env HOME="$home" XDG_DATA_HOME="$home/.local/share" XDG_BIN_HOME="$home/.local/bin" PATH="$test_path" LOOM_TEST_ARTIFACT_DIR="$artifacts" \
+    LOOM_TEST_LOG="$log" LOOM_TEST_UNAME_S=Darwin LOOM_TEST_UNAME_M=arm64 \
+    "$SH_BIN" "$ROOT/install.sh" --cli --ref "$version" --tools codex --project "$project"
+  assert_status 0
+  assert_exists "$home/.local/bin/loom"
+
+  run_cmd env HOME="$home" XDG_DATA_HOME="$home/.local/share" XDG_BIN_HOME="$home/.local/bin" PATH="$test_path" LOOM_TEST_ARTIFACT_DIR="$artifacts" \
+    LOOM_TEST_LOG="$log" LOOM_TEST_UNAME_S=Darwin LOOM_TEST_UNAME_M=arm64 \
+    "$SH_BIN" "$ROOT/install.sh" --cli --uninstall --tools codex --project "$project"
+  assert_status 0
+  assert_not_exists "$home/.local/bin/loom"
+  assert_not_exists "$home/.local/share/loom"
+}
+
+test_reject_unsupported_cli_host_before_writing() {
+  project=$(make_project cli-unsupported)
+  home=$(make_home cli-unsupported)
+  artifacts="$TMP_ROOT/cli-unsupported-artifacts"
+  log="$TMP_ROOT/cli-unsupported.log"
+  mkdir -p "$artifacts"
+  : >"$log"
+  test_path=$(make_cli_download_bin unsupported "$artifacts" "$log")
+
+  run_cmd env HOME="$home" XDG_DATA_HOME="$home/.local/share" XDG_BIN_HOME="$home/.local/bin" PATH="$test_path" LOOM_TEST_ARTIFACT_DIR="$artifacts" \
+    LOOM_TEST_LOG="$log" LOOM_TEST_UNAME_S=Windows_NT LOOM_TEST_UNAME_M=riscv64 \
+    "$SH_BIN" "$ROOT/install.sh" --cli --ref v1.2.3 --tools codex --project "$project"
+
+  assert_status 1
+  assert_contains "$CURRENT_OUT" "Unsupported CLI host: Windows_NT riscv64"
+  assert_not_exists "$home/.local/bin/loom"
+  assert_not_exists "$home/.local/share/loom"
+}
+
+test_reject_cli_without_versioned_release() {
+  project=$(make_project cli-no-release)
+  home=$(make_home cli-no-release)
+
+  run_cmd env HOME="$home" XDG_DATA_HOME="$home/.local/share" XDG_BIN_HOME="$home/.local/bin" "$SH_BIN" "$ROOT/install.sh" --cli --tools codex --project "$project"
+  assert_status 1
+  assert_contains "$CURRENT_OUT" "requires a published Loom release tag"
+  assert_not_exists "$home/.local/bin/loom"
+
+  run_cmd env HOME="$home" XDG_DATA_HOME="$home/.local/share" XDG_BIN_HOME="$home/.local/bin" "$SH_BIN" "$ROOT/install.sh" --cli --ref main --tools codex --project "$project"
+  assert_status 1
+  assert_contains "$CURRENT_OUT" "requires a published Loom release tag"
+  assert_not_exists "$home/.local/bin/loom"
+}
+
+test_release_workflow_builds_and_smokes_all_cli_assets() {
+  workflow="$ROOT/.github/workflows/release-cli.yml"
+  assert_exists "$workflow"
+  assert_contains "$workflow" "macos-15"
+  assert_contains "$workflow" "macos-15-intel"
+  assert_contains "$workflow" "ubuntu-24.04-arm"
+  assert_contains "$workflow" "ubuntu-24.04"
+  assert_contains "$workflow" "mix release loom_console"
+  assert_contains "$workflow" "Loom.CLI.main([\"--version\"])"
+  assert_contains "$workflow" "gh release upload"
+}
+
 run_test "Checkout install includes the architecture review skill" \
   test_checkout_install_includes_architecture_review_skill
 run_test "Install the latest non-prerelease release" \
@@ -656,6 +818,18 @@ run_test "Fetch the remote payload with an available downloader" \
   test_fetch_remote_payload_with_available_downloader
 run_test "Fail clearly when no downloader is available" \
   test_fail_clearly_when_no_downloader_is_available
+run_test "Install the CLI artifact for every supported host" \
+  test_install_cli_artifact_for_supported_hosts
+run_test "Leave the CLI untouched without opt in" \
+  test_cli_is_untouched_without_opt_in
+run_test "Keep CLI dry-run and uninstall symmetric" \
+  test_cli_dry_run_and_uninstall_are_symmetric
+run_test "Reject an unsupported CLI host before writing" \
+  test_reject_unsupported_cli_host_before_writing
+run_test "Reject CLI installation without a versioned release" \
+  test_reject_cli_without_versioned_release
+run_test "Build and smoke every version-matched CLI release asset" \
+  test_release_workflow_builds_and_smokes_all_cli_assets
 
 note ""
 note "$PASS passed, $FAIL failed"

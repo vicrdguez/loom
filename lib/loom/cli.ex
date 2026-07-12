@@ -5,11 +5,10 @@ defmodule Loom.CLI do
   alias Loom.Board.GitHub
   alias Loom.Harness.Codex
 
-  @version "0.1.0"
   @required_flags ~w(--json --ephemeral --model --sandbox --cd)
 
   def main(["--version"]) do
-    IO.puts("loom #{@version}")
+    IO.puts("loom #{version()}")
     0
   end
 
@@ -29,6 +28,13 @@ defmodule Loom.CLI do
   def main(_args) do
     IO.puts(:stderr, "Usage: loom [--version]")
     2
+  end
+
+  def version do
+    case Application.spec(:loom, :vsn) do
+      nil -> "dev"
+      version -> to_string(version)
+    end
   end
 
   def preflight(project, opts \\ []) do

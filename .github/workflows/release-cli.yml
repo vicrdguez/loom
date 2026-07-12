@@ -1,0 +1,65 @@
+name: Release Worker console
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    name: ${{ matrix.os }}-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            os: macos
+            arch: arm64
+          - runner: macos-15-intel
+            os: macos
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+          - runner: ubuntu-24.04
+            os: linux
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.19"
+          otp-version: "28"
+
+      - name: Resolve release version
+        shell: bash
+        run: echo "LOOM_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Build standard Mix release with ERTS
+        env:
+          MIX_ENV: prod
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get --only prod
+          mix release loom_console
+
+      - name: Smoke test release
+        run: _build/prod/rel/loom_console/bin/loom_console eval 'System.halt(Loom.CLI.main(["--version"]))'
+
+      - name: Package release
+        shell: bash
+        run: |
+          asset="loom-${GITHUB_REF_NAME}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
+          tar -C _build/prod/rel/loom_console -czf "$asset" .
+          echo "ASSET=$asset" >> "$GITHUB_ENV"
+
+      - name: Upload version-matched release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" "$ASSET" --clobber
