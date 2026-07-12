@@ -56,6 +56,17 @@ defmodule Loom.UITest do
     assert UI.dismiss_inspector(inspected) == state
   end
 
+  test "show inline command and configuration feedback above the fixed prompt" do
+    state = %{dashboard_state() | inline_result: "Enter model and reasoning effort"}
+    frame = UI.render(state, {100, 25})
+    terminal = ExRatatui.init_test_terminal(100, 25)
+    on_exit(fn -> ExRatatui.safe_restore_terminal(terminal) end)
+
+    assert frame.inline_result =~ "reasoning effort"
+    assert :ok = ExRatatui.draw(terminal, UI.widgets(frame))
+    assert ExRatatui.get_buffer_content(terminal) =~ "Enter model and reasoning effort"
+  end
+
   defp dashboard_state do
     lane = fn role, model ->
       %{
@@ -79,6 +90,7 @@ defmodule Loom.UITest do
     %{
       focus: :implementor,
       command: "",
+      inline_result: nil,
       inspector: nil,
       lanes: %{
         implementor: lane.(:implementor, "gpt-5.3-codex"),

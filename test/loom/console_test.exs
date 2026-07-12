@@ -94,6 +94,24 @@ defmodule Loom.ConsoleTest do
     assert Store.load(context.store).state.specs.implementor == after_spec
   end
 
+  test "complete the config form through the headless terminal", context do
+    console = start_console(context, setup: fn -> choices() end)
+
+    ui =
+      start_supervised!(
+        {Loom.UI.App, console: console, test_mode: {80, 24}, name: nil},
+        id: make_ref()
+      )
+
+    type_command(ui, "config implement")
+    type_command(ui, "gpt-5.2 xhigh")
+
+    spec = Console.snapshot(console).specs.implementor
+    assert spec.model == "gpt-5.2"
+    assert spec.reasoning_effort == :xhigh
+    assert spec.fresh_context
+  end
+
   test "quit safely while a Worker is active", context do
     FakeBoard.push_claimable(context.board, {:ok, %{id: 1, slug: "change", stage: :ready}})
     console = start_console(context, setup: fn -> choices() end)
@@ -180,5 +198,17 @@ defmodule Loom.ConsoleTest do
           Process.sleep(2)
           assert_eventually(fun, attempts - 1)
         )
+  end
+
+  defp type_command(ui, command) do
+    for character <- String.graphemes(command) do
+      :ok =
+        ExRatatui.Runtime.inject_event(ui, %ExRatatui.Event.Key{
+          code: character,
+          kind: "press"
+        })
+    end
+
+    :ok = ExRatatui.Runtime.inject_event(ui, %ExRatatui.Event.Key{code: "enter", kind: "press"})
   end
 end

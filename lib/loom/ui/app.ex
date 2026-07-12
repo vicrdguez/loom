@@ -26,6 +26,7 @@ defmodule Loom.UI.App do
        command: "",
        inline_result: nil,
        inspector: nil,
+       config_role: nil,
        quit_pending: false
      }}
   end
@@ -37,6 +38,10 @@ defmodule Loom.UI.App do
   def handle_event(%Event.Key{code: "esc"}, %{inspector: inspector} = state)
       when not is_nil(inspector) do
     {:noreply, UI.dismiss_inspector(state)}
+  end
+
+  def handle_event(%Event.Key{code: "esc"}, %{config_role: role} = state) when not is_nil(role) do
+    {:noreply, %{state | config_role: nil, inline_result: "Configuration cancelled"}}
   end
 
   def handle_event(%Event.Key{code: "backspace"}, state) do
@@ -72,8 +77,17 @@ defmodule Loom.UI.App do
     command = state.command
     state = %{state | command: ""}
 
+    if state.config_role do
+      configure(state, command)
+    else
+      execute_command(state, command)
+    end
+  end
+
+  defp execute_command(state, command) do
     case Command.parse(command) do
       {:query, query} ->
+        state = if query == :refresh, do: refresh_progress(state), else: state
         result = Command.run({:query, query}, query_snapshot(state))
         {:noreply, UI.present_result(state, result)}
 
@@ -84,9 +98,13 @@ defmodule Loom.UI.App do
         result = Lane.command(Map.fetch!(state.lane_pids, role), action)
         {:noreply, %{state | inline_result: inspect(result)}}
 
-      {:config, _role} ->
+      {:config, role} ->
         {:noreply,
-         %{state | inline_result: "Model configuration is collected in the config form."}}
+         %{
+           state
+           | config_role: role,
+             inline_result: "Enter model and reasoning effort (low/medium/high/xhigh)"
+         }}
 
       :quit ->
         quit(state)
@@ -94,6 +112,36 @@ defmodule Loom.UI.App do
       {:error, reason} ->
         {:noreply, %{state | inline_result: inspect(reason)}}
     end
+  end
+
+  defp configure(state, command) do
+    case String.split(command, ~r/\s+/, trim: true) do
+      [model, effort] when effort in ~w(low medium high xhigh) ->
+        :ok =
+          Console.config(
+            state.console,
+            state.config_role,
+            model,
+            String.to_existing_atom(effort)
+          )
+
+        {:noreply,
+         %{
+           state
+           | config_role: nil,
+             inline_result: "Saved #{state.config_role} model policy"
+         }}
+
+      _ ->
+        {:noreply,
+         %{state | inline_result: "Expected: MODEL low|medium|high|xhigh (Esc cancels)"}}
+    end
+  end
+
+  defp refresh_progress(state) do
+    progress = Lane.refresh(Map.fetch!(state.lane_pids, state.focus))
+    lanes = update_in(state.lanes, [state.focus], &Map.put(&1, :progress, progress))
+    %{state | lanes: lanes}
   end
 
   defp quit(%{quit_pending: true} = state) do

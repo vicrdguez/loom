@@ -43,6 +43,52 @@ defmodule Loom.LaneTest do
     end)
   end
 
+  test "re-arm automatic polling while idle" do
+    parent = self()
+
+    board = %{
+      claimable: fn role ->
+        send(parent, {:polled, role})
+        :none
+      end,
+      state: fn item -> {:ok, item.stage} end
+    }
+
+    {:ok, harness} = FakeHarness.start_link()
+
+    lane =
+      start_supervised!(
+        {Lane,
+         role: :reviewer,
+         spec: %{model: "gpt-5.3-codex"},
+         deps: %{board: board, harness: FakeHarness.adapter(harness), poll_interval: 5}},
+        id: make_ref()
+      )
+
+    assert_receive {:polled, :reviewer}, 100
+    assert_receive {:polled, :reviewer}, 100
+    assert Lane.snapshot(lane).status == :idle
+  end
+
+  test "refresh Progress through the lane's evidence seam", context do
+    item = item(:ready)
+    {:ok, evidence} = Agent.start_link(fn -> :ready end)
+
+    progress = fn board_item ->
+      %{board_stage: Agent.get(evidence, & &1), slug: board_item.slug}
+    end
+
+    deps = Map.put(context.deps, :progress, progress)
+    FakeBoard.push_claimable(context.board, {:ok, item})
+    lane = start_lane(:implementor, deps)
+
+    Lane.poll(lane)
+    assert_eventually(fn -> Lane.snapshot(lane).progress.board_stage == :ready end)
+    Agent.update(evidence, fn _ -> :review end)
+    assert %{board_stage: :review} = Lane.refresh(lane)
+    assert Lane.snapshot(lane).progress.board_stage == :review
+  end
+
   test "prefer rework before new implementation" do
     items = [item(:ready, 1), item(:rework, 2)]
     assert Loom.Board.choose(:implementor, items).stage == :rework

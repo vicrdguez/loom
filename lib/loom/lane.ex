@@ -18,6 +18,7 @@ defmodule Loom.Lane do
   def subscribe(lane), do: GenServer.call(lane, {:subscribe, self()})
   def snapshot(lane), do: GenServer.call(lane, :snapshot)
   def configure(lane, spec), do: GenServer.call(lane, {:configure, spec})
+  def refresh(lane), do: GenServer.call(lane, :refresh)
   def command(lane, action) when action in @actions, do: GenServer.call(lane, {:command, action})
   def poll(lane), do: GenServer.cast(lane, :poll)
 
@@ -36,6 +37,9 @@ defmodule Loom.Lane do
       harness: opts |> Keyword.fetch!(:deps) |> Map.fetch!(:harness),
       backoffs: opts |> Keyword.fetch!(:deps) |> Map.get(:backoffs, [5_000, 30_000, 120_000]),
       poll_interval: opts |> Keyword.fetch!(:deps) |> Map.get(:poll_interval, 60_000),
+      progress_reader: opts |> Keyword.fetch!(:deps) |> Map.get(:progress),
+      auto_poll: Keyword.get(opts, :auto_poll, true),
+      timer_ref: nil,
       status: restored_status(restored),
       current: nil,
       worker: nil,
@@ -59,6 +63,11 @@ defmodule Loom.Lane do
 
   @impl true
   def handle_call(:snapshot, _from, state), do: {:reply, public_snapshot(state), state}
+
+  def handle_call(:refresh, _from, state) do
+    state = refresh_progress(state)
+    {:reply, state.progress, publish(state)}
+  end
 
   def handle_call({:configure, spec}, _from, state) do
     {:reply, :ok, publish(%{state | spec: spec})}
@@ -138,11 +147,13 @@ defmodule Loom.Lane do
 
   def handle_info(_message, state), do: {:noreply, state}
 
-  defp do_poll(%{worker: worker} = state) when not is_nil(worker), do: state
-  defp do_poll(%{status: :paused} = state), do: state
-  defp do_poll(%{manual_pause: true} = state), do: state
+  defp do_poll(%{worker: worker} = state) when not is_nil(worker), do: cancel_timer(state)
+  defp do_poll(%{status: :paused} = state), do: cancel_timer(state)
+  defp do_poll(%{manual_pause: true} = state), do: cancel_timer(state)
 
   defp do_poll(state) do
+    state = cancel_timer(state)
+
     case state.board.claimable.(state.role) do
       {:ok, item} -> launch(state, item)
       :none -> idle(state)
@@ -151,6 +162,7 @@ defmodule Loom.Lane do
   end
 
   defp launch(state, item) do
+    state = refresh_progress(%{state | current: item})
     spec = Map.merge(state.spec, %{role: state.role, change: item, fresh_context: true})
 
     case state.harness.start.(spec, self()) do
@@ -180,14 +192,21 @@ defmodule Loom.Lane do
         else
           status = if state.manual_pause, do: :paused, else: :cooldown
 
-          publish(%{
-            state
-            | status: status,
-              retry_count: 0,
-              failures: [],
-              last_outcome: :handoff,
-              next_poll_at: next_poll(DateTime.utc_now(), 5_000)
-          })
+          state = refresh_progress(%{state | current: Map.put(state.current, :stage, stage)})
+
+          publish(
+            schedule(
+              %{
+                state
+                | status: status,
+                  retry_count: 0,
+                  failures: [],
+                  last_outcome: :handoff,
+                  next_poll_at: next_poll(DateTime.utc_now(), 5_000)
+              },
+              5_000
+            )
+          )
         end
 
       {:error, reason} ->
@@ -200,22 +219,33 @@ defmodule Loom.Lane do
     failures = Enum.take(state.failures ++ [reason], -3)
     status = if retry_count >= 3, do: :paused, else: :backoff
 
-    publish(%{
+    next_state = %{
       state
       | status: status,
         retry_count: retry_count,
         failures: failures,
         last_outcome: reason,
         next_poll_at: next_poll(DateTime.utc_now(), Enum.at(state.backoffs, retry_count - 1, 0))
-    })
+    }
+
+    if status == :paused do
+      publish(cancel_timer(next_state))
+    else
+      publish(schedule(next_state, Enum.at(state.backoffs, retry_count - 1, 0)))
+    end
   end
 
   defp idle(state) do
-    publish(%{
-      state
-      | status: :idle,
-        next_poll_at: next_poll(DateTime.utc_now(), state.poll_interval)
-    })
+    publish(
+      schedule(
+        %{
+          state
+          | status: :idle,
+            next_poll_at: next_poll(DateTime.utc_now(), state.poll_interval)
+        },
+        state.poll_interval
+      )
+    )
   end
 
   defp stopped(state) do
@@ -229,18 +259,41 @@ defmodule Loom.Lane do
   end
 
   defp degraded(state, reason) do
-    publish(%{
-      state
-      | status: :degraded,
-        last_outcome: {:board_unavailable, reason},
-        next_poll_at: next_poll(DateTime.utc_now(), state.poll_interval)
-    })
+    publish(
+      schedule(
+        %{
+          state
+          | status: :degraded,
+            last_outcome: {:board_unavailable, reason},
+            next_poll_at: next_poll(DateTime.utc_now(), state.poll_interval)
+        },
+        state.poll_interval
+      )
+    )
   end
 
   defp claimable_stage?(:implementor, stage), do: stage in [:ready, :rework]
   defp claimable_stage?(:reviewer, stage), do: stage == :review
 
   defp next_poll(now, milliseconds), do: DateTime.add(now, milliseconds, :millisecond)
+
+  defp refresh_progress(%{progress_reader: nil} = state), do: state
+  defp refresh_progress(%{current: nil} = state), do: state
+  defp refresh_progress(state), do: %{state | progress: state.progress_reader.(state.current)}
+
+  defp schedule(%{auto_poll: false} = state, _milliseconds), do: state
+
+  defp schedule(state, milliseconds) do
+    state = cancel_timer(state)
+    %{state | timer_ref: Process.send_after(self(), :poll, milliseconds)}
+  end
+
+  defp cancel_timer(%{timer_ref: nil} = state), do: state
+
+  defp cancel_timer(state) do
+    Process.cancel_timer(state.timer_ref)
+    %{state | timer_ref: nil}
+  end
 
   defp publish(state) do
     snapshot = public_snapshot(state)

@@ -27,6 +27,7 @@ defmodule Loom.UI do
       lanes: lanes,
       role_switcher: if(layout == :narrow, do: [:implementor, :reviewer], else: nil),
       command_line: %{text: "loom> " <> state.command, y: height - 1, fixed_bottom: true},
+      inline_result: Map.get(state, :inline_result),
       inspector: state.inspector
     }
   end
@@ -38,7 +39,7 @@ defmodule Loom.UI do
       {%Paragraph{text: frame.command_line.text},
        %Rect{x: 0, y: frame.command_line.y, width: frame.width, height: 1}}
 
-    dashboard = dashboard ++ [command]
+    dashboard = dashboard ++ inline_widgets(frame) ++ [command]
 
     case frame.inspector do
       nil -> dashboard
@@ -157,6 +158,15 @@ defmodule Loom.UI do
        content: content,
        block: %Block{title: "Inspector · Esc to close", borders: [:all]}
      }, %Rect{x: 0, y: 0, width: frame.width, height: frame.height - 1}}
+  end
+
+  defp inline_widgets(%{inline_result: nil}), do: []
+
+  defp inline_widgets(frame) do
+    [
+      {%Paragraph{text: to_string(frame.inline_result)},
+       %Rect{x: 0, y: max(frame.height - 3, 0), width: frame.width, height: 2}}
+    ]
   end
 
   defp lane_geometry(:wide, width, 0), do: {0, div(width, 2)}

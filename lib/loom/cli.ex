@@ -1,7 +1,7 @@
 defmodule Loom.CLI do
   @moduledoc "Bare `loom` Worker-console entrypoint."
 
-  alias Loom.{Console, Store}
+  alias Loom.{Console, Progress, Store}
   alias Loom.Board.GitHub
   alias Loom.Harness.Codex
 
@@ -83,7 +83,11 @@ defmodule Loom.CLI do
               project: project,
               store: store,
               setup: &first_run_setup/0,
-              lane_deps: %{board: board, harness: harness}
+              lane_deps: %{
+                board: board,
+                harness: harness,
+                progress: &Progress.snapshot(project, &1)
+              }
             )
 
           {:ok, ui} = Loom.UI.App.start_link(console: console, name: nil)
