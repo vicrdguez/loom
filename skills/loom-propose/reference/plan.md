@@ -4,10 +4,14 @@
 Write this file ONLY when there are real decisions to pin. Its purpose is to keep the implementer
 from making important architectural decisions at code time — including INTERNAL ones. If there's
 nothing to pin, skip it. Reference ADRs rather than restating them. Delete this comment.
+
+Write this file knowing that a different agent with a completely fresh context will implement it. Making
+sure that no context resolution is lost that could drive the implementor to drift from the plan is _crucial_.
 -->
 
 ## Approach
-{The implementation strategy in a few sentences. How the pieces fit together.}
+{The implementation strategy and how the pieces fit together. Add detail and clarity as needed,
+use code snippets if it clarifies the approach better and more directly than prose}
 
 ## Module shapes & seams
 <!--

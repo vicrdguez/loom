@@ -27,53 +27,57 @@ Rules of thumb:
 Delete this comment in the real file.
 -->
 
-Feature: {capability or behavior under change}
+## Feature: {capability or behavior under change}
 
-  Scenario: {clear, specific name — becomes the test name}
-    Given {the starting state}
-    When {the action taken through a public interface}
-    Then {the observable outcome}
-    And {a further observable outcome}
+  #### Scenario: {clear, specific name — becomes the test name}
+    - Given {the starting state}
+    - When {the action taken through a public interface}
+    - Then {the observable outcome}
+    - And {a further observable outcome}
 
 ---
 
 ### Example
 
 ```gherkin
-Feature: Order cancellation
+## Feature: Order cancellation
 
-  Background:
-    Given a customer with a placed order
+  ### Background:
+  - Given a customer with a placed order
 
-  Rule: An order can only be cancelled before it ships
+  ### Rule: An order can only be cancelled before it ships
 
-    Scenario: Cancel an unshipped order
-      When the customer cancels the order
-      Then the order moves to state "cancelled"
-      And a full refund is initiated
+    #### Scenario: Cancel an unshipped order
+    - When the customer cancels the order
+    - Then the order moves to state "cancelled"
+    - And a full refund is initiated
 
-    Scenario: Cannot cancel a shipped order
-      Given the order has shipped
-      When the customer attempts to cancel the order
-      Then the cancellation is rejected with reason "already shipped"
-      But the order remains in state "shipped"
+    #### Scenario: Cannot cancel a shipped order
+    - Given the order has shipped
+    - When the customer attempts to cancel the order
+    - Then the cancellation is rejected with reason "already shipped"
+    - But the order remains in state "shipped"
 
-  Scenario Outline: Refund equals the order total
-    When the customer cancels the order totalling <total>
-    Then a refund of <total> is initiated
+    #### Scenario Outline: Refund equals the order total
+    - When the customer cancels the order totalling <total>
+    - Then a refund of <total> is initiated
 
     Examples:
-      | total |
-      | 1000  |
-      | 4250  |
+    | total |
+    | 1000  |
+    | 4250  |
 
-# A critical internal module — tested at its own seam, not via the public API
-Feature: Order state-machine guard
+```
 
-  Rule: Only placed -> cancelled is a legal transition
+A critical internal module — tested at its own seam, not via the public API
 
-    Scenario: Reject a cancel from shipped
-      Given a state "shipped"
-      When the guard evaluates a "cancel" transition
-      Then the transition is rejected as illegal
+```
+## Feature: Order state-machine guard
+
+  ### Rule: Only placed -> cancelled is a legal transition
+
+    #### Scenario: Reject a cancel from shipped
+      - Given a state "shipped"
+      - When the guard evaluates a "cancel" transition
+      - Then the transition is rejected as illegal
 ```

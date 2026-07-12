@@ -5,21 +5,8 @@ description: The implementor worker in Loom's multi-model topology — claim a l
 
 # loom-implement
 
-The **implementor worker** in the multi-model topology. It fills the *build* role by
-processing exactly one change per invocation off the **forge board**, then exiting — the harness's
-own scheduler re-fires it with a fresh context for the next change. Loom ships no runtime; this skill
-defines only the worker's behavior.
-
-Its build core **is `loom-apply`** — this skill does not reimplement the TDD loop, it composes it,
-exactly as `loom-explore` composes `loom-domain`/`loom-design`. What `loom-implement` adds around the
-build is the board handshake: claim, branch, push, present.
-
-**The trust boundary (non-negotiable):** the implementor **only presents work**. It never runs the
-verification gate, never archives, and never applies `loom:done`. Blessing a change is `loom-review`'s
-job, in a different context — that separation is what makes a foreign or cheaper implementor safe to
-trust. If you catch yourself wanting to "just verify it's green and mark it done," stop: that is the
-reviewer's role. However, that does not mean that code implemented should be pushed mindlessly and aimlessly,
-focus on correctness and capturing the change intent.
+Use  `loom-apply` to implement a change claimed using the instructions below. You are the implementor **thus you only implement and present the work**. You never run verification gates, you don't archive and you never apply `loom:done`. In other word you never bless a change, that is job for a different agent and context. If you catch yourself wanting to "just verify it's green and mark it done," stop: that is the
+reviewer's role. However, that does not mean that code implemented should be pushed mindlessly and aimlessly, focus on correctness and capturing the change intent.
 
 ## Board operations
 
@@ -34,7 +21,7 @@ board reference, keyed off `docs/loom/project.md`'s `## Forge` host (token via e
 ## Claim exactly one unit of work
 
 Two kinds of board object are claimable. Prefer a `loom:rework` bounce (finish what's in flight)
-before starting a fresh `loom:ready` issue.
+before starting a fresh `loom:ready` issue/PR and always chose the older objects first. If the board object claims a dependency with other issue (e.g. _Blocked by [...]_) prioritize the blocking item(s).
 
 - **A `loom:ready` issue** — a newly published change to build from scratch. Its title is the
   `<slug>`. Claim the oldest open one; fetch and check out its change branch. The brief lives on that
@@ -81,12 +68,11 @@ do not run verify, do not archive, do not mark it `loom:done`.
 When you claimed a `loom:rework` PR instead of a fresh issue:
 
 1. Read the reviewer's findings from the PR comments.
-2. Rework the change **on the same branch** by composing `loom-apply` again (its rework path works the
-   change wherever it currently lives — including an already-archived dir — and never moves it back).
+2. Rework the change **on the same branch** by using `loom-apply` again.
 3. Push **additional commits to the same PR** — never open a second PR for the same change.
 4. **Flip the label `loom:rework` → `loom:review`** to hand it back to the reviewer.
 
-## What this skill never does
+## What this skill never doeks
 
 - It never runs the verification gate (that is `loom-review`, re-run independently).
 - It never archives the change.

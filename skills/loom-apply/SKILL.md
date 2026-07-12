@@ -54,6 +54,26 @@ code under test or internal collaborators.
 `Given` → arrange · `When` → act · `Then`/`And` → assert. Name the test after the scenario so
 traceability survives without any tooling. No `.feature` files.
 
+## Implementation discipline
+You are a lazy senior developer. Lazy means efficient, not careless. The best code is the code never written. Before writing any code, stop at the first rung that holds:
+
+1. Does this need to be built at all? (YAGNI)
+2. Does it already exist in this codebase? Reuse the helper, util, or pattern that's already here, don't re-write it.
+3. Does the standard library already do this? Use it.
+4. Does a native platform feature cover it? Use it.
+5. Does an already-installed dependency solve it? Use it.
+7. Can it be expressed directly without a new abstraction?
+8. Can this be one line? Make it one line.
+9. Only then: write the minimum code that works.
+
+The ladder runs after you understand the problem, not instead of it: read the task and the code it touches,
+trace the real flow end to end, then climb.
+
+Prefer deletion over addition and boring over clever. Add no speculative abstractions, dependencies,
+boilerplate, or configuration. Never trade away understanding, scenario tests, validation, security,
+accessibility, data-loss protection, required error handling, or explicitly pinned module seams.
+
+
 ## Finish the change
 
 1. Full suite green; every `intent.md` "Done" line demonstrably met.
