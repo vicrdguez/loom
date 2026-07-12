@@ -17,9 +17,17 @@ defmodule Loom.Progress.Repo do
     active = Path.join([root, "docs", "loom", "changes", slug])
 
     cond do
-      File.dir?(active) -> active
-      archived = List.first(Path.wildcard(Path.join([root, "docs", "loom", "changes", "archive", "*-#{slug}"]))) -> archived
-      true -> raise ArgumentError, "Loom change #{inspect(slug)} was not found under #{root}"
+      File.dir?(active) ->
+        active
+
+      archived =
+          List.first(
+            Path.wildcard(Path.join([root, "docs", "loom", "changes", "archive", "*-#{slug}"]))
+          ) ->
+        archived
+
+      true ->
+        raise ArgumentError, "Loom change #{inspect(slug)} was not found under #{root}"
     end
   end
 
@@ -45,7 +53,9 @@ defmodule Loom.Progress.Repo do
   end
 
   defp slice_commits(root) do
-    case System.cmd("git", ["-C", root, "log", "--format=%h%x09%s", "--max-count=20"], stderr_to_stdout: true) do
+    case System.cmd("git", ["-C", root, "log", "--format=%h%x09%s", "--max-count=20"],
+           stderr_to_stdout: true
+         ) do
       {output, 0} ->
         output
         |> String.split("\n", trim: true)

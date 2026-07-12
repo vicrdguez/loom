@@ -12,7 +12,10 @@ defmodule Loom.Store do
 
   def open(project, opts \\ []) do
     root = Keyword.get(opts, :state_dir, default_state_dir())
-    key = project |> canonical() |> then(&:crypto.hash(:sha256, &1)) |> Base.encode16(case: :lower)
+
+    key =
+      project |> canonical() |> then(&:crypto.hash(:sha256, &1)) |> Base.encode16(case: :lower)
+
     dir = Path.join(root, key)
     File.mkdir_p!(dir)
 
@@ -96,7 +99,10 @@ defmodule Loom.Store do
   defp canonical(project), do: project |> Path.expand() |> String.trim_trailing("/")
 
   defp default_state_dir do
-    Path.join(System.get_env("XDG_STATE_HOME") || Path.join(System.user_home!(), ".local/state"), "loom")
+    Path.join(
+      System.get_env("XDG_STATE_HOME") || Path.join(System.user_home!(), ".local/state"),
+      "loom"
+    )
   end
 
   defp owner_alive?(owner) do

@@ -26,11 +26,15 @@ defmodule Loom.ProgressTest do
   end
 
   defp project_fixture!(kind) do
-    root = Path.join(System.tmp_dir!(), "loom-progress-#{kind}-#{System.unique_integer([:positive])}")
+    root =
+      Path.join(System.tmp_dir!(), "loom-progress-#{kind}-#{System.unique_integer([:positive])}")
+
     change = Path.join(root, "docs/loom/changes/example")
     File.mkdir_p!(change)
 
-    scenarios = if kind == "with-tasks", do: "Scenario: One\nScenario: Two\n", else: "Scenario: One\n"
+    scenarios =
+      if kind == "with-tasks", do: "Scenario: One\nScenario: Two\n", else: "Scenario: One\n"
+
     File.write!(Path.join(change, "behavior.md"), scenarios)
 
     if kind == "with-tasks" do
