@@ -7,16 +7,18 @@ have it synthesized from your existing AGENTS.md / README / manifests, or fill i
 -->
 
 ## Stack
-POSIX `sh` installer and Markdown documentation.
+Elixir 1.19 / OTP 28 application with ExRatatui 0.11, plus a POSIX `sh` installer and Markdown
+documentation.
 
 ## Commands
-- **Test:** `sh test/install_test.sh`
-- **Build:** None.
-- **Lint/format:** None configured.
+- **Test:** `mix test && sh test/install_test.sh`
+- **Build:** `mix compile`; production artifact: `MIX_ENV=prod mix release loom_console`
+- **Lint/format:** `mix format --check-formatted`
 
 ## Conventions
 - Keep `install.sh` POSIX `sh` with no language runtime dependency.
 - Use dependency-free shell tests for installer behavior.
+- Keep Worker lifecycle logic behind the `Lane`, `Harness`, `Board`, `Progress`, and `Store` seams.
 
 ## Forge
 <!-- loom-submit reads this to open the PR. The token is an ENV VAR, never written here. -->
@@ -27,3 +29,4 @@ POSIX `sh` installer and Markdown documentation.
 ## Constraints
 - Remote install defaults to GitHub release archives and must not require Git.
 - Codeberg is a mirror only; GitHub is the canonical host for releases and PRs.
+- CLI releases include ERTS and target macOS/Linux on arm64/x86_64; Windows is out of scope.

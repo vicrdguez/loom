@@ -23,13 +23,14 @@ drift); the documents are how humans and agents stay oriented.
 **Two topologies** (per change, no mode flag — emergent from what you run):
 - **Single-model** (default): one model + the human fills every role, handing off sequentially. Only
   rule added: `review` runs in a fresh context (a separate `/loom-review` or a spawned sub-agent).
-- **Multi-model**: distinct models fill the roles, coordinating through the **forge board** — issues,
+- **Board topology**: Workers fill the roles, coordinating through the **Board** — issues,
   PRs, and four labels: `loom:ready` (issue → implementor), `loom:review` (PR → reviewer), `loom:rework`
   (PR → implementor), `loom:done` (PR → human merges). `/loom-propose` publishes on demand (push branch
   + open a `loom:ready` issue); `/loom-implement` (the implementor worker) claims it, builds by
   composing `loom-apply`, and opens a PR marked `loom:review`; `/loom-review` blesses or bounces. Each
-  worker processes one change per invocation and exits; the harness's scheduler re-fires it fresh. Loom
-  ships no runtime.
+  Worker processes one change per invocation in a fresh context. The optional first-party `loom`
+  Worker console polls the Board and supervises one persistent lane per Worker Role; Model diversity
+  is optional.
 
 **Foundational skills** (composed by the loop, or run standalone — e.g. to ground a brownfield repo):
 `/loom-domain` (sharpen the glossary + ADRs) and `/loom-design` (deep, testable module shapes).
@@ -56,8 +57,8 @@ drift); the documents are how humans and agents stay oriented.
 - The **PR review is the acceptance gate**: `loom-submit` archives on green and opens the PR; merging
   it accepts the change and lands the archive on `main`. `loom-apply` never touches `main` or remotes.
 - **Trust boundary**: the model that built a change never verifies, archives, or blesses it. Review is
-  a **standing model stage** run outside the build context — a different model in multi-model, a fresh
-  context of the same model in single-model. In multi-model, `loom-implement` only presents work and
+  a **standing model stage** run outside the build context — always a fresh context, optionally a
+  different model. In the Board topology, `loom-implement` only presents work and
   `loom-review` holds the whole verify+archive+bless gate (re-running verification, never trusting the
   builder's green suite) and edits no code — forge writes are distributed across workers, not owned by
   one skill.

@@ -1,14 +1,14 @@
 ---
 name: loom-implement
-description: The implementor worker in Loom's multi-model topology — claim a loom:ready issue (or a loom:rework PR) off the forge board, set up the branch, build the change test-first by composing loom-apply, push, and open (or update) a PR labeled loom:review, closing the issue on first PR open. It only presents work; it never verifies, archives, or blesses. Use when running Loom's build stage as a board worker, or when the user says implement/claim/pick up a ready change from the board.
+description: The implementor Worker in Loom's Board topology — claim a loom:ready issue (or a loom:rework PR) off the Board, set up the branch, build the change test-first by composing loom-apply, push, and open (or update) a PR labeled loom:review, closing the issue on first PR open. It only presents work; it never verifies, archives, or blesses. Use when running Loom's build stage as a Board Worker, or when the user says implement/claim/pick up a ready Change from the Board.
 ---
 
 # loom-implement
 
-The **implementor worker** in the multi-model topology. It fills the *build* role by
-processing exactly one change per invocation off the **forge board**, then exiting — the harness's
-own scheduler re-fires it with a fresh context for the next change. Loom ships no runtime; this skill
-defines only the worker's behavior.
+The **implementor Worker** in the Board topology. It fills the *build* Role by processing exactly one
+Change per invocation off the **Board**, then exiting. The optional first-party Worker console
+re-fires the lane with a fresh context for the next Change; this skill defines the Worker's Role
+contract regardless of which scheduler launches it.
 
 Its build core **is `loom-apply`** — this skill does not reimplement the TDD loop, it composes it,
 exactly as `loom-explore` composes `loom-domain`/`loom-design`. What `loom-implement` adds around the
@@ -42,8 +42,8 @@ before starting a fresh `loom:ready` issue.
 - **A `loom:rework` PR** — a change you (or another implementor) already built, bounced back by the
   reviewer with feedback as PR comments. Check out its head branch and read the comments first.
 
-Process **one** change, then exit. Do not loop over the board yourself — re-firing with a fresh
-context is the scheduler's job, and it is what keeps each change on a clean context boundary.
+Process **one** Change, then exit. Do not loop over the Board yourself — the Worker console re-fires
+the Role lane with a fresh context, which keeps each Change on a clean context boundary.
 
 ## Set up the branch
 
@@ -56,7 +56,7 @@ absent (a foreign worker, fresh clone), create it from the pushed branch:
 Hand the build to **`loom-apply`**: read the brief, then run its TDD loop — one Gherkin scenario at a
 time, red → green → refactor, a commit per slice, internal modules tested at their own seams. Update
 the capability doc in place and write `acceptance.md`, exactly as `loom-apply` prescribes. Nothing
-about the build changes because a board sits around it; the single-model build core is reused whole.
+about the build changes because a Board sits around it; the same build core is reused whole.
 
 `loom-apply` stops short of verifying, archiving, pushing, or opening a PR — which is precisely the
 line the implementor must also not cross. Let it finish through `acceptance.md`, then take over for
@@ -95,6 +95,6 @@ When you claimed a `loom:rework` PR instead of a fresh issue:
 
 ## Hand-off
 
-Report the PR URL and that it is labeled `loom:review`, awaiting a reviewer. In the multi-model
-topology the reviewer worker picks it up on its next firing; in a single-model run, the human (or the
-scheduler) triggers `/loom-review` in a fresh context.
+Report the PR URL and that it is labeled `loom:review`, awaiting a reviewer. In the Board topology
+the reviewer Worker picks it up on its next firing; outside it, the human triggers `/loom-review` in
+a fresh context.

@@ -3,7 +3,7 @@
 Loom is a small workflow for building software with an AI coding agent. You talk a change through
 until it's clear, write down what it should do, build it test-first, and open a PR — with documentation
 you didn't have to write as a separate chore. It installs into Claude Code, Codex, and OpenCode as a
-set of skills.
+set of skills, with an optional first-party Worker console for Board-topology scheduling.
 
 **Loom doesn't introduce a new method or invents anything**. It takes ideas that already work and wires them into one bundle you install once.
 
@@ -23,8 +23,9 @@ new trick. It just puts them on a single line.
 ## How it differs from OpenSpec
 
 Loom drops OpenSpec's canonical spec tree and the machinery that keeps it correct: delta specs, a
-sync step, validation, and a CLI. The reasoning is short. The tests are what guarantee behaviour, so
-there's no point maintaining a second source of truth in parallel. What you keep instead is a
+sync step, and validation. The optional `loom` CLI is a Worker console, not a spec manager. The
+reasoning is short. The tests are what guarantee behaviour, so there's no point maintaining a second
+source of truth in parallel. What you keep instead is a
 plain-English summary of each capability that you edit by hand, sitting on top of the tests that
 actually hold the line.
 
@@ -67,19 +68,19 @@ run.
   Nothing changes from the table above — except that `review` runs in a fresh context (a separate
   `/loom-review` invocation or a spawned reviewer sub-agent) before you land. Ceremony-free: no board,
   no roles.
-- **Multi-model**: distinct models fill the roles — a planner (explore/propose), an **implementor**
-  worker (build), and a **reviewer** worker (review) — coordinating asynchronously through the **forge
-  board**, with the human's merge as the final gate. Each worker processes one change per invocation
-  and exits; the harness's own scheduler re-fires it with a fresh context. Loom ships no runtime.
+- **Board topology**: planner, **implementor**, and **reviewer** Roles coordinate asynchronously
+  through the **Board**, with the human's merge as the final gate. The first-party Worker console
+  keeps one persistent lane per Worker Role, launches one fresh Worker context at a time in each
+  lane. Model diversity is optional.
 
 The **keystone** is the trust boundary: *the model that built a change never verifies, archives, or
 blesses it.* That is what makes a cheaper or foreign implementor safe — and it is why review must run
-outside the build context (a different model in multi-model; at minimum a fresh context of the same
-model in single-model).
+outside the build context. Different models strengthen that separation, but a fresh context is the
+invariant in every topology.
 
 ### The board and its four labels
 
-In the multi-model topology, workers coordinate through the forge's issues, PRs, and four labels:
+In the Board topology, Workers coordinate through the forge's issues, PRs, and four labels:
 
 | Label | Rides on | Awaiting |
 |---|---|---|
@@ -92,7 +93,10 @@ In the multi-model topology, workers coordinate through the forge's issues, PRs,
 the brief); `/loom-implement` claims a `loom:ready` issue, builds it by composing `loom-apply`, and
 opens a PR marked `loom:review`; `/loom-review` verifies independently and either lands it (`loom:done`)
 or bounces it (`loom:rework`, feedback as PR comments). Publishing reuses the existing `## Forge` config
-— no new setup. See [ADR-0003](docs/adr/0003-multi-model-topology-via-board-workers.md).
+— no new forge setup. Running bare `loom` in an initialized project opens the optional Worker
+console, which polls this Board and supervises implementor and reviewer lanes. See
+[ADR-0004](docs/adr/0004-loom-ships-a-worker-console.md) and
+[ADR-0006](docs/adr/0006-board-topology-requires-independent-contexts.md).
 
 ### Discovery and foundational skills
 
@@ -137,9 +141,14 @@ curl -fsSL https://raw.githubusercontent.com/vicrdguez/loom/main/install.sh | sh
 ```
 
 Other flags: `--tools LIST`, `--global` (install the skills for your user instead of one project),
-`--project DIR`, `--ref REF`, `--uninstall`, `--force`, `--dry-run`. By default, the remote
+`--project DIR`, `--ref REF`, `--cli`, `--uninstall`, `--force`, `--dry-run`. By default, the remote
 installer resolves the latest non-prerelease GitHub release archive. Use `--ref REF` or
 `LOOM_REF=REF` to install a specific tag or branch.
+
+`--cli` additionally installs the version-matched Worker console as a user-level `loom` executable.
+CLI artifacts are published for macOS and Linux on arm64 and x86_64 and include Erlang/ERTS, so the
+host does not need Elixir. Prebuilt CLI installation requires a published release tag; development
+branches and unversioned checkouts continue to install skills but cannot supply a matching CLI asset.
 
 GitHub is the canonical host for installs, releases, and PRs. Codeberg is only a mirror.
 

@@ -36,11 +36,28 @@ How Loom installs and removes its skills, docs scaffold, and agent instructions.
   (updated 2026-07-04)
 - Remote bootstrap can fetch archives with either `curl` or `wget`.
   -> `test/install_test.sh::test_fetch_remote_payload_with_available_downloader` (added 2026-06-28)
+- Without `--cli`, installation leaves any Worker-console files untouched and preserves the existing
+  skills-only lifecycle.
+  -> `test/install_test.sh::test_cli_is_untouched_without_opt_in` (added 2026-07-12)
+- `--cli` installs a version-matched user-level console release for macOS/Linux on arm64/x86_64;
+  dry-run and uninstall remain symmetric.
+  -> `test/install_test.sh::test_install_cli_artifact_for_supported_hosts`,
+  `test/install_test.sh::test_cli_dry_run_and_uninstall_are_symmetric` (added 2026-07-12)
+- CLI installation rejects unsupported hosts and refs without a published versioned artifact before
+  writing the executable.
+  -> `test/install_test.sh::test_reject_unsupported_cli_host_before_writing`,
+  `test/install_test.sh::test_reject_cli_without_versioned_release` (added 2026-07-12)
+- Each release builds and smoke-tests four ERTS-containing CLI assets with the same tag as the source
+  release.
+  -> `test/install_test.sh::test_release_workflow_builds_and_smokes_all_cli_assets`
+  (added 2026-07-12)
 
 ## Decisions
 - Remote install uses GitHub latest stable releases by default, with explicit refs for pinned or
   development installs. - [ADR-0001](../adr/0001-remote-install-uses-github-latest-release.md)
+- Worker-console artifacts are standard target-specific Mix releases containing ERTS.
+  - [ADR-0005](../adr/0005-worker-console-uses-elixir-and-ex-ratatui.md)
 
 ## Language
-**Harness**, **Project install**, **Global install**, **Remote install**, and **Release archive** -
-see [CONTEXT.md](../../CONTEXT.md).
+**Harness**, **Project install**, **Global install**, **Remote install**, **Release archive**, and
+**Worker console** - see [CONTEXT.md](../../CONTEXT.md).

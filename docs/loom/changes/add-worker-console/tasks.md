@@ -31,7 +31,7 @@
 - [x] B28 Reject an unsupported CLI host clearly                             → behavior.md §6/4
 - [x] B29 Reject CLI install without a versioned release artifact            → behavior.md §6/5
 - [x] B30 Publish and smoke-test every version-matched CLI artifact          → behavior.md §6/6
-- [ ] B31 Replace superseded workflow language with Board-topology terms     → behavior.md §7/1
+- [x] B31 Replace superseded workflow language with Board-topology terms     → behavior.md §7/1
 
 ## Chores
 - [x] C1  Scaffold the root Mix/OTP application, ExRatatui dependency, formatter, and release entrypoint
@@ -40,12 +40,12 @@
 - [x] C3  Wire OTP supervision so UI exit stops lanes/Workers and no Worker can outlive the Console
 - [x] C4  Add platform release configuration and GitHub Actions build/smoke matrix for four CLI assets
 - [x] C5  Extend POSIX `install.sh` and dependency-free shell tests with opt-in user-level `--cli`
-- [ ] C6  Update `docs/loom/project.md` with Mix test/build/format commands alongside installer tests
+- [x] C6  Update `docs/loom/project.md` with Mix test/build/format commands alongside installer tests
 
 ## Docs
-- [ ] D1  Create `docs/capabilities/worker-console.md` with behavior-to-test links
-- [ ] D2  Update `docs/capabilities/workflow.md` for Board topology and first-party scheduling
-- [ ] D3  Update `docs/capabilities/installation.md` for optional CLI artifacts and lifecycle
-- [ ] D4  Update README and AGENTS/AGENTS template/Claude orientation with canonical topology language
-- [ ] D5  Update installed Loom skills and references that still say multi-model or “Loom ships no runtime”
-- [ ] D6  Write `acceptance.md` for a real GitHub Board + Codex run and visual wide/narrow TUI checks
+- [x] D1  Create `docs/capabilities/worker-console.md` with behavior-to-test links
+- [x] D2  Update `docs/capabilities/workflow.md` for Board topology and first-party scheduling
+- [x] D3  Update `docs/capabilities/installation.md` for optional CLI artifacts and lifecycle
+- [x] D4  Update README and AGENTS/AGENTS template/Claude orientation with canonical topology language
+- [x] D5  Update installed Loom skills and references that still say multi-model or “Loom ships no runtime”
+- [x] D6  Write `acceptance.md` for a real GitHub Board + Codex run and visual wide/narrow TUI checks

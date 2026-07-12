@@ -796,6 +796,21 @@ test_release_workflow_builds_and_smokes_all_cli_assets() {
   assert_contains "$workflow" "gh release upload"
 }
 
+test_docs_use_canonical_board_topology_language() {
+  for file in "$ROOT/README.md" "$ROOT/AGENTS.md" "$ROOT/AGENTS.tmpl.md" \
+              "$ROOT/skills/loom-implement/SKILL.md" "$ROOT/skills/loom-review/SKILL.md" \
+              "$ROOT/skills/loom-propose/SKILL.md"; do
+    assert_contains "$file" "Board topology"
+    assert_not_contains "$file" "multi-model"
+    assert_not_contains "$file" "Loom ships no runtime"
+  done
+
+  assert_contains "$ROOT/README.md" "Model diversity is optional"
+  assert_contains "$ROOT/README.md" "fresh context"
+  assert_contains "$ROOT/docs/loom/project.md" "mix test && sh test/install_test.sh"
+  assert_contains "$ROOT/docs/loom/project.md" "mix release loom_console"
+}
+
 run_test "Checkout install includes the architecture review skill" \
   test_checkout_install_includes_architecture_review_skill
 run_test "Install the latest non-prerelease release" \
@@ -830,6 +845,8 @@ run_test "Reject CLI installation without a versioned release" \
   test_reject_cli_without_versioned_release
 run_test "Build and smoke every version-matched CLI release asset" \
   test_release_workflow_builds_and_smokes_all_cli_assets
+run_test "Use canonical Board-topology language across installed docs" \
+  test_docs_use_canonical_board_topology_language
 
 note ""
 note "$PASS passed, $FAIL failed"

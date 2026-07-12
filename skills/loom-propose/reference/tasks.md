@@ -1,7 +1,7 @@
 # Tasks — {change title}
 
 <!--
-The coordination ledger for loom-apply (and for multi-agent runs). Write it when there's more than a
+The coordination ledger for loom-apply (and for Board-topology Worker runs). Write it when there's more than a
 couple of scenarios or any non-behavioral chores. Rules:
 - One behavioral task per Gherkin scenario → each is one red-green TDD cycle.
 - Stable ids (B1, C1, D1…) so an orchestrator can dispatch and track.

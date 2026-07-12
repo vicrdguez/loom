@@ -50,7 +50,7 @@ When warranted:
   the ADRs. Template: [reference/plan.md](./reference/plan.md).
 - **`tasks.md`** — *when there is more than a couple of scenarios or any non-behavioral chores*: a
   checklist with stable ids, one task per scenario plus chores (migrations, wiring) and the
-  capability-doc update. It is the coordination ledger for multi-agent apply. Template:
+  capability-doc update. It is the coordination ledger for apply and Board topology Workers. Template:
   [reference/tasks.md](./reference/tasks.md).
 
 A one-scenario fix is two short files. A large change is four.
@@ -70,12 +70,12 @@ project's own framework.
 ## Publish to the board (only when asked)
 
 By default propose is **local**: it writes the brief on the change branch and stops. Nothing is
-pushed and no issue is opened — the single-model flow is byte-for-byte unchanged, so `/loom-apply`
+pushed and no issue is opened — the direct flow is byte-for-byte unchanged, so `/loom-apply`
 picks the change up from the worktree exactly as before.
 
 **Publish only on an explicit request** ("publish it", "put it on the board", "hand it to an
-implementor"). Publishing is what makes a change's build stage multi-model: it hands the change to an
-implementor worker through the forge board. There is **no mode flag** — topology is per change and
+implementor"). Publishing hands the Change to an implementor Worker through the Board. There is **no
+mode flag** — topology is per Change and
 emergent from whether you publish. Publishing reuses the existing `## Forge` section
 of `docs/loom/project.md` — it needs **no new config** in the body or frontmatter.
 
@@ -88,7 +88,7 @@ When asked to publish, after the brief is committed on the branch:
    `docs/loom/changes/<slug>/`) rather than duplicating it — a thin pointer an implementor worker
    claims with `/loom-implement`.
 
-Every forge command comes from the per-forge board reference, keyed off the `## Forge` host (token via
+Every forge command comes from the Board reference for that forge, keyed off the `## Forge` host (token via
 env var, never from `project.md`):
 
 - GitHub → [loom-implement/reference/github.md](../loom-implement/reference/github.md)

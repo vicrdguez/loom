@@ -1,6 +1,6 @@
 ---
 name: loom-review
-description: The reviewer stage in Loom — claim a loom:review PR, re-run the mechanical verify independently (never trusting the implementor's green suite), then run a guilty-until-proven code review grounded in test strength and the target project's own quality skills. Pass → land (archive in branch + finalize) and label loom:done; fail → label loom:rework with findings as PR comments, editing no code. A standing model stage in both topologies; single-model runs it in a fresh context. Use when the user says review, or when running Loom's review stage before the human acceptance gate.
+description: The reviewer stage in Loom — claim a loom:review PR, re-run the mechanical verify independently (never trusting the implementor's green suite), then run a guilty-until-proven code review grounded in test strength and the target project's own quality skills. Pass → land (archive in branch + finalize) and label loom:done; fail → label loom:rework with findings as PR comments, editing no code. A standing model stage in both topologies and always a fresh context. Use when the user says review, or when running Loom's review stage before the human acceptance gate.
 ---
 
 # loom-review
@@ -15,14 +15,15 @@ composes it, adding the adversarial code-read on top and the rework bounce when 
 Change the land core once and both the standalone land stage and this reviewer update.
 
 **The trust boundary (non-negotiable):** review **never runs in the context that built the change**.
-In the multi-model topology that is automatic — a different *model* reviews. In the single-model
-topology it must be enforced: run `loom-review` in a **fresh context** — a separate `/loom-review`
-invocation or a spawned reviewer sub-agent — so the model never blesses work in the same context that
-wrote it. And the reviewer **edits no code**: on a pass it lands; on a fail it comments and bounces.
+In the Board topology the Worker console enforces a fresh reviewer context. Model diversity is
+optional: matching model IDs are valid because context independence is the invariant. Outside the
+Board topology, run `loom-review` in a **fresh context** — a separate `/loom-review` invocation or a
+spawned reviewer sub-agent — so the model never blesses work in the same context that wrote it. And
+the reviewer **edits no code**: on a pass it lands; on a fail it comments and bounces.
 
 ## Board operations
 
-Label swaps and PR comments come from the per-forge board reference, keyed off `docs/loom/project.md`'s
+Label swaps and PR comments come from the Board reference for each forge, keyed off `docs/loom/project.md`'s
 `## Forge` host (token via env var, never from `project.md`):
 
 - GitHub → [../loom-implement/reference/github.md](../loom-implement/reference/github.md)
