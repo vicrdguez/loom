@@ -9,7 +9,7 @@ defmodule Loom.Lane do
   use GenServer
 
   @roles [:implementor, :reviewer]
-  @actions [:pause, :resume, :retry, :stop]
+  @actions [:pause, :resume, :retry, :stop, :force_stop]
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -17,6 +17,7 @@ defmodule Loom.Lane do
 
   def subscribe(lane), do: GenServer.call(lane, {:subscribe, self()})
   def snapshot(lane), do: GenServer.call(lane, :snapshot)
+  def configure(lane, spec), do: GenServer.call(lane, {:configure, spec})
   def command(lane, action) when action in @actions, do: GenServer.call(lane, {:command, action})
   def poll(lane), do: GenServer.cast(lane, :poll)
 
@@ -26,6 +27,8 @@ defmodule Loom.Lane do
     true = role in @roles
     now = DateTime.utc_now()
 
+    restored = Keyword.get(opts, :restore, %{})
+
     state = %{
       role: role,
       spec: Keyword.fetch!(opts, :spec),
@@ -33,19 +36,20 @@ defmodule Loom.Lane do
       harness: opts |> Keyword.fetch!(:deps) |> Map.fetch!(:harness),
       backoffs: opts |> Keyword.fetch!(:deps) |> Map.get(:backoffs, [5_000, 30_000, 120_000]),
       poll_interval: opts |> Keyword.fetch!(:deps) |> Map.get(:poll_interval, 60_000),
-      status: :idle,
+      status: restored_status(restored),
       current: nil,
       worker: nil,
-      retry_count: 0,
-      failures: [],
-      manual_pause: false,
+      retry_count: Map.get(restored, :retry_count, 0),
+      failures: Map.get(restored, :failures, []),
+      manual_pause: Map.get(restored, :manual_pause, false),
       last_outcome: nil,
       started_at: now,
       worker_started_at: nil,
       last_event_at: nil,
       next_poll_at:
         next_poll(now, opts |> Keyword.fetch!(:deps) |> Map.get(:poll_interval, 60_000)),
-      activity: [],
+      activity: Map.get(restored, :activity, []),
+      progress: Map.get(restored, :progress),
       subscribers: MapSet.new()
     }
 
@@ -55,6 +59,10 @@ defmodule Loom.Lane do
 
   @impl true
   def handle_call(:snapshot, _from, state), do: {:reply, public_snapshot(state), state}
+
+  def handle_call({:configure, spec}, _from, state) do
+    {:reply, :ok, publish(%{state | spec: spec})}
+  end
 
   def handle_call({:subscribe, subscriber}, _from, state) do
     Process.monitor(subscriber)
@@ -87,16 +95,21 @@ defmodule Loom.Lane do
   end
 
   def handle_call({:command, :stop}, _from, state) do
-    :ok = state.harness.stop.(state.worker, :graceful)
+    case state.harness.stop.(state.worker, :graceful) do
+      :ok -> {:reply, :ok, stopped(state)}
+      {:error, reason} -> {:reply, {:error, reason}, state}
+    end
+  end
 
-    {:reply, :ok,
-     publish(%{
-       state
-       | worker: nil,
-         status: :paused,
-         manual_pause: true,
-         last_outcome: :stopped
-     })}
+  def handle_call({:command, :force_stop}, _from, %{worker: nil} = state) do
+    {:reply, :ok, stopped(state)}
+  end
+
+  def handle_call({:command, :force_stop}, _from, state) do
+    case state.harness.stop.(state.worker, :force) do
+      :ok -> {:reply, :ok, stopped(state)}
+      {:error, reason} -> {:reply, {:error, reason}, state}
+    end
   end
 
   @impl true
@@ -205,6 +218,16 @@ defmodule Loom.Lane do
     })
   end
 
+  defp stopped(state) do
+    publish(%{
+      state
+      | worker: nil,
+        status: :paused,
+        manual_pause: true,
+        last_outcome: :stopped
+    })
+  end
+
   defp degraded(state, reason) do
     publish(%{
       state
@@ -240,7 +263,12 @@ defmodule Loom.Lane do
       :worker_started_at,
       :last_event_at,
       :next_poll_at,
-      :activity
+      :activity,
+      :progress
     ])
   end
+
+  defp restored_status(%{manual_pause: true}), do: :paused
+  defp restored_status(%{retry_count: count}) when count >= 3, do: :paused
+  defp restored_status(_restored), do: :idle
 end
