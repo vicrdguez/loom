@@ -5,14 +5,14 @@
 - [ ] B2  Allow matching models with a Model diversity warning              → behavior.md §1/2
 - [x] B3  Enforce exclusive ownership and recover stale locks               → behavior.md §1/3
 - [ ] B4  Fail capability preflight with an actionable diagnostic           → behavior.md §1/4
-- [ ] B5  Launch one fresh Worker for claimable Role work                    → behavior.md §2/1
-- [ ] B6  Remain visible and idle without claimable work                     → behavior.md §2/2
-- [ ] B7  Prefer implementor rework before ready work                        → behavior.md §2/3
-- [ ] B8  Reconcile Worker exit against Board truth                          → behavior.md §2/4
-- [ ] B9  Pause after three consecutive Worker failures                      → behavior.md §2/5
-- [ ] B10 Recover automatically when the Board returns                       → behavior.md §2/6
-- [ ] B11 Do not terminate a silent Worker automatically                     → behavior.md §2/7
-- [ ] B12 Apply deterministic lane-control commands                          → behavior.md §2/8
+- [x] B5  Launch one fresh Worker for claimable Role work                    → behavior.md §2/1
+- [x] B6  Remain visible and idle without claimable work                     → behavior.md §2/2
+- [x] B7  Prefer implementor rework before ready work                        → behavior.md §2/3
+- [x] B8  Reconcile Worker exit against Board truth                          → behavior.md §2/4
+- [x] B9  Pause after three consecutive Worker failures                      → behavior.md §2/5
+- [x] B10 Recover automatically when the Board returns                       → behavior.md §2/6
+- [x] B11 Do not terminate a silent Worker automatically                     → behavior.md §2/7
+- [x] B12 Apply deterministic lane-control commands                          → behavior.md §2/8
 - [ ] B13 Quit safely while a Worker is active                               → behavior.md §2/9
 - [x] B14 Translate a Worker specification without a Codex profile           → behavior.md §3/1
 - [x] B15 Normalize only useful Codex JSONL events                           → behavior.md §3/2
