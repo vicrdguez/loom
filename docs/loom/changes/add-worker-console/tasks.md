@@ -21,9 +21,9 @@
 - [x] B18 Retain only bounded filtered Activity history                      → behavior.md §4/3
 - [ ] B19 Adapt the lane layout to terminal width                            → behavior.md §5/1
 - [ ] B20 Separate status, evidence, and Activity in each lane                → behavior.md §5/2
-- [ ] B21 Navigate and inspect state through Console commands                 → behavior.md §5/3
+- [x] B21 Navigate and inspect state through Console commands                 → behavior.md §5/3
 - [ ] B22 Configure model policy locally                                     → behavior.md §5/4
-- [ ] B23 Reject shell and workflow mutation commands                        → behavior.md §5/5
+- [x] B23 Reject shell and workflow mutation commands                        → behavior.md §5/5
 - [ ] B24 Open long results in the inspector                                 → behavior.md §5/6
 - [ ] B25 Resolve and install the CLI artifact for supported hosts           → behavior.md §6/1
 - [ ] B26 Leave the CLI untouched without the opt-in flag                    → behavior.md §6/2
