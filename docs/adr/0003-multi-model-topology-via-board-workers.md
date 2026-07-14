@@ -1,7 +1,8 @@
 # Multi-Model Changes Run as Board-Coordinated Workers
 
 **Status:** Accepted, except for the "Loom ships no runtime" scheduling decision superseded by ADR
-0004 and the multi-model naming/model-diversity requirement superseded by ADR 0006.
+0004, the multi-model naming/model-diversity requirement superseded by ADR 0006, and the single-worker
+concurrency assumption superseded by ADR 0007.
 
 Loom's loop is **one pipeline of stages** — explore → propose → build → review → land — run under one
 of two **topologies**. **Review is a standing model stage in both topologies**: `loom-review` is not
@@ -25,9 +26,10 @@ exactly one change per invocation and then exits. The autonomy comes from the ha
 between changes always crosses a clean context boundary, and Loom itself ships **no runtime**. Loom
 defines worker *behavior*; the harness supplies the *scheduling*.
 
-Workers coordinate through the board — the forge's issues, PRs, and four labels:
-`loom:ready` (issue → implementor), `loom:review` (PR → reviewer), `loom:rework` (PR → implementor),
-`loom:done` (PR → human merges). `loom-propose` publishes a change issue; `loom-implement` claims a
+Workers coordinate through the board — the forge's issues, PRs, and five labels:
+`loom:ready` (issue → implementor), `loom:wip` (additive implementor Claim), `loom:review` (PR →
+reviewer), `loom:rework` (PR → implementor), and `loom:done` (PR → human merges). `loom-propose`
+publishes a change issue; `loom-implement` claims a
 `ready` issue, builds on the branch, pushes, and opens a PR marked `review`; `loom-review` verifies
 independently, code-reviews, and either archives + marks `done` or bounces to `rework`.
 
@@ -60,9 +62,9 @@ open the `loom:ready` issue) is an explicit per-change action, and running a wor
 a stage multi-model. Publishing needs no new config — it reuses the existing `## Forge` section of
 `docs/loom/project.md`. So the same repo can run some changes solo and hand others to the board.
 
-Concurrency is deliberately out of scope for now: the design assumes at most one worker per role
-looping at a time, so a forge issue board (which has no atomic claim) is a safe-enough queue. Adding a
-second implementor would reintroduce a claim race that this design does not solve.
+The original design assumed at most one worker per role and left concurrency out of scope. ADR 0007
+supersedes that assumption with an additive, advisory Claim marker that guards later pickup while
+acknowledging the forge still provides no atomic ownership lock.
 
 The multi-model topology breaks the old forge-ownership boundary (ADR 0002: apply never touches
 remotes; submit owns all forge actions). That invariant is now recognized as a *single-model-topology*
