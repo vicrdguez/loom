@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPiSessionFactory, PiWorker } from "../extensions/loom-workers/pi-worker.ts";
 import { acquireRoleLock } from "../extensions/loom-workers/local-state.ts";
+import { GitHubBoard } from "../extensions/loom-workers/github.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -166,6 +167,32 @@ test("load standard project policy around the bundled Role contract", async () =
   assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
   assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);
   assert.match(prompt, /"number":42/);
+});
+
+test("list all open Board Changes", async () => {
+  const rows: Record<string, any[]> = {
+    "loom:ready": [
+      { number: 1, title: "ready", url: "u1", createdAt: "1", state: "OPEN", labels: [{ name: "loom:ready" }] },
+      { number: 9, title: "unlabeled", url: "u9", createdAt: "9", state: "OPEN", labels: [] },
+    ],
+    "loom:review": [{ number: 2, title: "review", url: "u2", createdAt: "2", state: "OPEN", headRefName: "two", labels: [{ name: "loom:review" }, { name: "loom:wip" }] }],
+    "loom:rework": [{ number: 3, title: "rework", url: "u3", createdAt: "3", state: "OPEN", headRefName: "three", labels: [{ name: "loom:rework" }] }],
+    "loom:done": [
+      { number: 4, title: "done", url: "u4", createdAt: "4", state: "OPEN", headRefName: "four", labels: [{ name: "loom:done" }] },
+      { number: 5, title: "closed", url: "u5", createdAt: "5", state: "CLOSED", labels: [{ name: "loom:done" }] },
+    ],
+  };
+  const board = new GitHubBoard("owner/repo", async (args) => {
+    const label = args[args.indexOf("--label") + 1];
+    return { stdout: JSON.stringify(rows[label]) };
+  });
+
+  assert.deepEqual((await board.listOpen()).map((item) => [item.lifecycle, item.number, item.claimed]), [
+    ["ready", 1, false],
+    ["review", 2, true],
+    ["rework", 3, false],
+    ["done", 4, false],
+  ]);
 });
 
 test("recover a stale Role lock", async () => {
