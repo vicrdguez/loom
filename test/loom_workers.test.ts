@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import test from "node:test";
@@ -88,6 +89,19 @@ test("leave projects unchanged on package installation", async () => {
   } finally {
     await rm(project, { recursive: true, force: true });
   }
+});
+
+test("prefer Harness-native installation without changing the legacy installer", async () => {
+  const readme = await readFile(join(root, "README.md"), "utf8");
+  const installer = await readFile(join(root, "install.sh"), "utf8");
+  const help = execFileSync("sh", [join(root, "install.sh"), "--help"], { encoding: "utf8" });
+
+  assert.match(readme, /Claude Code.*native plugin/is);
+  assert.match(readme, /pi install git:github\.com\/vicrdguez\/loom/);
+  assert.match(readme, /deprecated compatibility path for Codex CLI and OpenCode/i);
+  assert.doesNotMatch(installer, /--tools[^\n]*pi/i);
+  assert.doesNotMatch(help, /\bpi\b/i);
+  assert.doesNotMatch(help, /deprecated/i);
 });
 
 test("never substitute an ineligible assignment", async () => {

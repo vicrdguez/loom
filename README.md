@@ -2,8 +2,8 @@
 
 Loom is a small workflow for building software with an AI coding agent. You talk a change through
 until it's clear, write down what it should do, build it test-first, and open a PR — with documentation
-you didn't have to write as a separate chore. It installs into Claude Code, Codex, and OpenCode as a
-set of skills.
+you didn't have to write as a separate chore. It installs into Claude Code, Pi, Codex CLI, and
+OpenCode as a set of skills.
 
 Loom packages proven agent-workflow practices into installable skills.
 
@@ -16,6 +16,9 @@ plain-English summary of each capability that you edit by hand, sitting on top o
 actually hold the line.
 
 ## The loop
+
+Commands below use Claude Code's `/loom-*` spelling. In Pi, invoke the same skills as
+`/skill:loom-*` (for example, `/skill:loom-init`).
 
 If you know the change you want, start with `/loom-explore`. If you want to look for a good
 architecture improvement first, run `/loom-architecture`: it scans read-only for architecture
@@ -40,11 +43,12 @@ Run `/loom-init` once in a project, then per change:
 Choose a topology per change; there is no mode flag.
 
 - **Single-model** (default): one model and the human work sequentially; run `/loom-review` in a fresh context before landing.
-- **Multi-model**: planner, implementor, and reviewer workers coordinate through the forge board; the reviewer is separate from the builder.
+- **Board topology**: planner, implementor, and reviewer Workers coordinate through the forge Board;
+  every work unit gets a fresh context, and the reviewer is separate from the builder.
 
-### The board and its five labels
+### The Board and its five labels
 
-In the multi-model topology, workers coordinate through the forge's issues, PRs, and five labels:
+In the Board topology, Workers coordinate through the forge's issues, PRs, and five labels:
 
 | Label | Rides on | Awaiting |
 |---|---|---|
@@ -65,6 +69,9 @@ comments). Publishing reuses the existing `## Forge` config — no new setup. Se
 `loom:wip` is additive: claimed work keeps its lifecycle label, and implementors and reviewers skip
 objects already carrying it. Interrupted Claims remain visible until a human removes `wip` to requeue
 them. This narrows accidental duplicate pickup but is not an atomic lock.
+
+Pi's `/loom-workers` console can schedule the Board topology while leaving Claims and lifecycle
+mutations to the Role skills. It creates a fresh in-memory Pi session for every assignment.
 
 ### Discovery and foundational skills
 
@@ -88,10 +95,22 @@ Install with:
 Then run `/loom-init` in your project — it scaffolds `docs/`, adds the Loom section to `AGENTS.md`,
 and wires `@AGENTS.md` into `CLAUDE.md`.
 
-### Codex, OpenCode, or all harnesses at once (installer)
+### Pi (native Git package)
 
-The plugin mechanism is Claude-only, so Codex and OpenCode (and a one-shot install across all three)
-use the script:
+Install the skills and Worker console together:
+
+```sh
+pi install git:github.com/vicrdguez/loom
+```
+
+In a trusted project, run `/skill:loom-init` once. Start the interactive, GitHub-only Worker console
+with `/loom-workers start both`; inspect it with `/loom-workers list` and `/loom-workers status`, and
+use `pause`, `resume`, `retry`, or `stop` with `implementor`, `reviewer`, or `both`.
+
+### Codex CLI and OpenCode (deprecated compatibility installer)
+
+`install.sh` is the deprecated compatibility path for Codex CLI and OpenCode. It remains supported
+and tested, but gains no Pi mode or runtime warning:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/vicrdguez/loom/main/install.sh | sh
@@ -105,9 +124,8 @@ curl -fsSL https://raw.githubusercontent.com/vicrdguez/loom/main/install.sh | sh
 
 For options, run `./install.sh --help`.
 
-The installer copies the `loom-*` skills into each harness's skills directory, scaffolds `docs/`,
-and adds a short Loom section to `AGENTS.md` (and `@AGENTS.md` to `CLAUDE.md` for Claude Code).
-Then run `/loom-init`.
+The installer copies the `loom-*` skills into the selected harness directories, scaffolds `docs/`,
+and adds a short Loom section to `AGENTS.md`. Then run `/loom-init`.
 
 From a checkout, contributors can run the same installer directly:
 
