@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { createPiSessionFactory, PiWorker } from "../extensions/loom-workers/pi-worker.ts";
 import { acquireRoleLock } from "../extensions/loom-workers/local-state.ts";
 import { GitHubBoard } from "../extensions/loom-workers/github.ts";
+import { RoleLane } from "../extensions/loom-workers/lane.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -40,6 +41,26 @@ function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => { resolve = done; });
   return { promise, resolve };
+}
+
+class FakeScheduler {
+  now = 1_000;
+  jobs: Array<{ at: number; run: () => void }> = [];
+
+  schedule = (run: () => void, delay: number) => {
+    const job = { at: this.now + delay, run };
+    this.jobs.push(job);
+    return { cancel: () => { this.jobs = this.jobs.filter((entry) => entry !== job); } };
+  };
+
+  async runNext() {
+    this.jobs.sort((left, right) => left.at - right.at);
+    const job = this.jobs.shift();
+    assert.ok(job, "expected a scheduled job");
+    this.now = job.at;
+    job.run();
+    await new Promise((resolve) => setImmediate(resolve));
+  }
 }
 
 test("leave projects unchanged on package installation", async () => {
@@ -230,6 +251,27 @@ test("exclude Claims before oldest-item selection", async () => {
     }));
     assert.equal((await board.next(role))?.number, 2, `${role} ${lifecycle}`);
   }
+});
+
+test("remain idle with no eligible work", async () => {
+  const scheduler = new FakeScheduler();
+  let workerStarts = 0;
+  const lane = new RoleLane({
+    role: "implementor",
+    board: { next: async () => undefined, observe: async () => undefined },
+    worker: { start: async () => { workerStarts++; throw new Error("unexpected"); } },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+
+  lane.start();
+  await scheduler.runNext();
+  assert.equal(lane.snapshot().state, "idle");
+  assert.equal(lane.snapshot().nextPoll, 61_000);
+  assert.equal(workerStarts, 0);
+  await scheduler.runNext();
+  assert.equal(workerStarts, 0);
 });
 
 test("recover a stale Role lock", async () => {
