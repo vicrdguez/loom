@@ -54,7 +54,7 @@ For reviewer and implementor lists, first discard every row whose labels contain
 lowest remaining index. Filtering must happen before selection so a claimed older object cannot hide
 a later eligible item. An issue title is its `<slug>`; check out the PR's head branch to rework.
 
-## Claim and requeue implementor work
+## Claim and requeue work
 
 Forgejo mutations require numeric repository label IDs. Resolve names from the label list once:
 

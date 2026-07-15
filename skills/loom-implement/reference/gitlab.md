@@ -48,7 +48,7 @@ glab mr    list --label "loom:rework" --not-label "loom:wip" \
 The forge excludes `loom:wip` before applying the one-item limit, so claimed older work cannot hide
 a later eligible item.
 
-## Claim and requeue implementor work
+## Claim and requeue work
 
 Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless the
 command succeeds:

@@ -86,7 +86,7 @@ gh pr list --repo "<owner>/<repo>" --label "loom:rework" --state open \
   --json number,headRefName,title --jq '.[0]'
 ```
 
-## Claim and requeue implementor work
+## Claim and requeue work
 
 Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless the
 command succeeds:
@@ -94,6 +94,7 @@ command succeeds:
 ```sh
 gh issue edit <issue-number> --repo "<owner>/<repo>" --add-label "loom:wip" # ready issue
 gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"       # rework PR
+gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"       # review PR
 ```
 
 Failed or interrupted work stays claimed. A human requeues it by removing only `loom:wip`:

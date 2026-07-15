@@ -32,8 +32,11 @@ Label swaps and PR comments come from the per-forge board reference, keyed off `
 ## Claim exactly one review
 
 Claim the oldest open `loom:review` PR without `loom:wip`; the Board reference filters Claims before
-age ordering and one-item selection. Process **one** PR, then exit — re-firing with a fresh context
-is the scheduler's job.
+age ordering and one-item selection. After selecting one eligible PR, add `loom:wip` **without removing** `loom:review`.
+The Claim exists only after that forge operation succeeds. If it fails or its outcome is ambiguous,
+report the forge failure and exit without fetching, checking out, or inspecting the Change.
+Only then check out its branch in the change worktree and read the brief (`docs/loom/changes/<slug>/`).
+Process **one** PR, then exit — re-firing with a fresh context is the scheduler's job.
 
 ## Verify independently — never on trust
 

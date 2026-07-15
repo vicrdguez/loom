@@ -283,6 +283,22 @@ test_filter_reviewer_claims_before_selecting_one_item() {
   assert_contains "$codeberg" 'For reviewer and implementor lists, first discard every row whose labels contain `loom:wip`'
 }
 
+test_claim_reviewer_before_local_access() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'add `loom:wip` **without removing** `loom:review`'
+  assert_contains "$review" 'The Claim exists only after that forge operation succeeds'
+  assert_contains "$review" 'without fetching, checking out, or inspecting the Change'
+
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" 'gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"       # review PR'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" 'glab mr update <mr-iid> --label "loom:wip"'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless this'
+}
+
 test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
@@ -811,6 +827,8 @@ run_test "Filter Claims before selecting one item" \
   test_filter_claims_before_selecting_one_item
 run_test "Filter reviewer Claims before selecting one PR" \
   test_filter_reviewer_claims_before_selecting_one_item
+run_test "Claim reviewer work before local access" \
+  test_claim_reviewer_before_local_access
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
 run_test "Add an advisory Claim without replacing lifecycle" \
