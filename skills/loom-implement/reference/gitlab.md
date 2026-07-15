@@ -83,8 +83,8 @@ glab issue update <issue-iid> --unlabel "loom:wip"
 glab mr update <iid> --unlabel "loom:review" --label "loom:rework"
 # implementor re-presents:  rework + wip → review
 glab mr update <iid> --unlabel "loom:rework,loom:wip" --label "loom:review"
-# reviewer passes:  review → done
-glab mr update <iid> --unlabel "loom:review" --label "loom:done"
+# reviewer passes:  review + wip → done
+glab mr update <iid> --unlabel "loom:review,loom:wip" --label "loom:done"
 ```
 
 ## Feedback as MR comments (loom-review)

@@ -314,6 +314,20 @@ test_human_requeues_an_interrupted_review() {
   done
 }
 
+test_release_a_passing_reviewer_claim_through_done() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'remove `loom:review` and `loom:wip` as it adds `loom:done`'
+
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" '--remove-label "loom:review,loom:wip" --add-label "loom:done"'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" '--unlabel "loom:review,loom:wip" --label "loom:done"'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" '-d "{\"labels\":[$done_id]}"'
+}
+
 test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
@@ -848,6 +862,8 @@ run_test "Retain an interrupted reviewer Claim" \
   test_retain_an_interrupted_reviewer_claim
 run_test "Human requeues an interrupted review" \
   test_human_requeues_an_interrupted_review
+run_test "Release a passing reviewer Claim through done" \
+  test_release_a_passing_reviewer_claim_through_done
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
 run_test "Add an advisory Claim without replacing lifecycle" \

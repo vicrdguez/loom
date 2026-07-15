@@ -81,6 +81,7 @@ When verification passes **and** the review finds no blocking issue, **land the 
 the PR body as the human acceptance checklist. Then **label the PR `loom:done`** (swap off
 `loom:review`). Push the archive commit to the PR branch.
 
+Hand off through the Board reference: remove `loom:review` and `loom:wip` as it adds `loom:done`.
 The change now awaits the **human's merge** — merging a `loom:done` PR *is* the acceptance, and it
 lands the archive on `main`. The reviewer does not merge.
 

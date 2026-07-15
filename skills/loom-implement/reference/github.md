@@ -127,8 +127,8 @@ gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review" --ad
 # implementor re-presents after rework:  rework + wip → review
 gh pr edit <pr-number> --repo "<owner>/<repo>" \
   --remove-label "loom:rework,loom:wip" --add-label "loom:review"
-# reviewer passes:  review → done
-gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review" --add-label "loom:done"
+# reviewer passes:  review + wip → done
+gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review,loom:wip" --add-label "loom:done"
 ```
 
 ## Feedback as PR comments (loom-review)
