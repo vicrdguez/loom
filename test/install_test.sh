@@ -280,6 +280,7 @@ test_filter_reviewer_claims_before_selecting_one_item() {
   assert_contains "$gitlab" '--sort asc --per-page 1'
 
   codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'tea pr    list --labels "loom:review" --state open --fields index,title,head,labels --output simple'
   assert_contains "$codeberg" 'For reviewer and implementor lists, first discard every row whose labels contain `loom:wip`'
 }
 

@@ -46,7 +46,7 @@ tea issue create --title "<slug>" --labels "loom:ready" \
 
 ```sh
 tea issue list --labels "loom:ready" --state open --fields index,title,labels --output simple
-tea pr    list --labels "loom:review" --state open --fields index,title,head --output simple  # reviewer
+tea pr    list --labels "loom:review" --state open --fields index,title,head,labels --output simple  # reviewer
 tea pr    list --labels "loom:rework" --state open --fields index,title,head,labels --output simple
 ```
 
