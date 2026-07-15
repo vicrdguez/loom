@@ -77,22 +77,29 @@ blesses it.* That is what makes a cheaper or foreign implementor safe — and it
 outside the build context (a different model in multi-model; at minimum a fresh context of the same
 model in single-model).
 
-### The board and its four labels
+### The board and its five labels
 
-In the multi-model topology, workers coordinate through the forge's issues, PRs, and four labels:
+In the multi-model topology, workers coordinate through the forge's issues, PRs, and five labels:
 
 | Label | Rides on | Awaiting |
 |---|---|---|
 | `loom:ready` | issue | an **implementor** to build it |
+| `loom:wip` | issue or PR | an **implementor currently working** it (additive Claim) |
 | `loom:review` | PR | a **reviewer** to judge it |
 | `loom:rework` | PR | the **implementor** to address feedback |
 | `loom:done` | PR | the **human** to merge (acceptance) |
 
 `/loom-propose` publishes a change on demand (push the branch + open a `loom:ready` issue pointing to
-the brief); `/loom-implement` claims a `loom:ready` issue, builds it by composing `loom-apply`, and
-opens a PR marked `loom:review`; `/loom-review` verifies independently and either lands it (`loom:done`)
-or bounces it (`loom:rework`, feedback as PR comments). Publishing reuses the existing `## Forge` config
-— no new setup. See [ADR-0003](docs/adr/0003-multi-model-topology-via-board-workers.md).
+the brief); `/loom-implement` claims an eligible `loom:ready` issue or `loom:rework` PR by adding
+`loom:wip`, builds it by composing `loom-apply`, and opens a PR marked `loom:review`; `/loom-review`
+verifies independently and either lands it (`loom:done`) or bounces it (`loom:rework`, feedback as PR
+comments). Publishing reuses the existing `## Forge` config — no new setup. See
+[ADR-0003](docs/adr/0003-multi-model-topology-via-board-workers.md) and
+[ADR-0007](docs/adr/0007-board-claims-use-additive-wip-label.md).
+
+`loom:wip` is additive: claimed work keeps its lifecycle label, and implementors skip objects already
+carrying it. Interrupted Claims remain visible until a human removes `wip` to requeue them. This
+narrows accidental duplicate pickup but is not an atomic lock.
 
 ### Discovery and foundational skills
 
