@@ -49,7 +49,7 @@ In the multi-model topology, workers coordinate through the forge's issues, PRs,
 | Label | Rides on | Awaiting |
 |---|---|---|
 | `loom:ready` | issue | an **implementor** to build it |
-| `loom:wip` | issue or PR | an **implementor currently working** it (additive claim) |
+| `loom:wip` | issue or PR | a **worker currently working** it (additive Claim) |
 | `loom:review` | PR | a **reviewer** to judge it |
 | `loom:rework` | PR | the **implementor** to address feedback |
 | `loom:done` | PR | the **human** to merge (acceptance) |
@@ -62,9 +62,9 @@ comments). Publishing reuses the existing `## Forge` config — no new setup. Se
 [ADR-0003](docs/adr/0003-multi-model-topology-via-board-workers.md) and
 [ADR-0007](docs/adr/0007-board-claims-use-additive-wip-label.md).
 
-`loom:wip` is additive: claimed work keeps its lifecycle label, and implementors skip objects already
-carrying it. Interrupted Claims remain visible until a human removes `wip` to requeue them. This
-narrows accidental duplicate pickup but is not an atomic lock.
+`loom:wip` is additive: claimed work keeps its lifecycle label, and implementors and reviewers skip
+objects already carrying it. Interrupted Claims remain visible until a human removes `wip` to requeue
+them. This narrows accidental duplicate pickup but is not an atomic lock.
 
 ### Discovery and foundational skills
 

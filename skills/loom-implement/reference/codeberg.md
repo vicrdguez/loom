@@ -13,7 +13,7 @@ and issue edits, so several board operations use the Forgejo API with the token 
 
 ## The five labels
 
-`loom:ready` (issue → implementor) · `loom:wip` (additive implementor claim) · `loom:review` (PR → reviewer) · `loom:rework` (PR →
+`loom:ready` (issue → implementor) · `loom:wip` (additive Worker Claim) · `loom:review` (PR → reviewer) · `loom:rework` (PR →
 implementor) · `loom:done` (PR → human merges). One active board object per change (issue XOR PR);
 the implementor closes the issue when it opens the PR.
 

@@ -17,7 +17,7 @@ this file adds only the board layer (labels, issues, PR labels, comments) on top
 | Label | Rides on | Means → next role |
 |---|---|---|
 | `loom:ready` | issue | proposed change awaiting an **implementor** |
-| `loom:wip` | issue or PR | additive marker: an **implementor is working** |
+| `loom:wip` | issue or PR | additive Worker Claim |
 | `loom:review` | PR | built change awaiting a **reviewer** |
 | `loom:rework` | PR | reviewer bounced it back to the **implementor** |
 | `loom:done` | PR | passed review, awaiting the **human's merge** |
@@ -33,7 +33,7 @@ Run before the first publish. `gh label create` fails if the label already exist
 ```sh
 for spec in \
   "loom:ready|Proposed change awaiting an implementor|0e8a16" \
-  "loom:wip|An implementor is actively working this change|fbca04" \
+  "loom:wip|A Worker Claim is active on this change|fbca04" \
   "loom:review|Built change awaiting a reviewer|1d76db" \
   "loom:rework|Reviewer bounced it back to the implementor|d93f0b" \
   "loom:done|Passed review, awaiting the human merge|5319e7"; do

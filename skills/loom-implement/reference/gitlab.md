@@ -11,7 +11,7 @@ from `project.md`.**
 
 ## The five labels
 
-`loom:ready` (issue → implementor) · `loom:wip` (additive implementor claim) · `loom:review` (MR → reviewer) · `loom:rework` (MR →
+`loom:ready` (issue → implementor) · `loom:wip` (additive Worker Claim) · `loom:review` (MR → reviewer) · `loom:rework` (MR →
 implementor) · `loom:done` (MR → human merges). One active board object per change (issue XOR MR);
 the implementor closes the issue when it opens the MR.
 

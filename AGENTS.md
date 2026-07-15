@@ -24,9 +24,9 @@ drift); the documents are how humans and agents stay oriented.
 - **Single-model** (default): one model + the human fills every role, handing off sequentially. Only
   rule added: `review` runs in a fresh context (a separate `/loom-review` or a spawned sub-agent).
 - **Multi-model**: distinct models fill the roles, coordinating through the **forge board** — issues,
-  PRs, and five labels: `loom:ready` (issue → implementor), `loom:wip` (additive implementor Claim),
+  PRs, and five labels: `loom:ready` (issue → implementor), `loom:wip` (additive Worker Claim),
   `loom:review` (PR → reviewer), `loom:rework` (PR → implementor), `loom:done` (PR → human merges).
-  Implementors skip claimed objects and add `wip` before work; interrupted claims remain `wip` until
+  Implementors and reviewers skip claimed objects and add `wip` before work; interrupted claims remain `wip` until
   a human requeues them. `/loom-propose` publishes on demand (push branch + open a `loom:ready` issue);
   `/loom-implement` (the implementor worker) claims it, builds by
   composing `loom-apply`, and opens a PR marked `loom:review`; `/loom-review` blesses or bounces. Each

@@ -351,6 +351,21 @@ test_report_a_partial_reviewer_handoff_as_incomplete() {
   assert_contains "$review" 'Do not present the review as successfully handed off'
 }
 
+test_install_the_symmetric_reviewer_claim_protocol() {
+  ensure_board_install
+  assert_contains "$BOARD_PROJECT/AGENTS.md" '`loom:wip` (additive Worker Claim)'
+  assert_contains "$BOARD_PROJECT/AGENTS.md" 'Implementors and reviewers skip claimed objects and add `wip` before work'
+
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'Claim the oldest open `loom:review` PR without `loom:wip`'
+  for forge in github gitlab codeberg; do
+    assert_contains "$(board_file "loom-implement/reference/$forge.md")" 'additive Worker Claim'
+  done
+
+  assert_contains "$ROOT/README.md" 'a **worker currently working** it (additive Claim)'
+  assert_contains "$ROOT/docs/capabilities/workflow.md" 'Board reviewers claim only unclaimed `loom:review` PRs'
+}
+
 test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
@@ -411,7 +426,7 @@ test_report_partial_handoff_as_incomplete() {
 
 test_forge_command_contracts_preserve_wip_claims() {
   github=$(board_file loom-implement/reference/github.md)
-  assert_contains "$github" '"loom:wip|An implementor is actively working this change|fbca04"'
+  assert_contains "$github" '"loom:wip|A Worker Claim is active on this change|fbca04"'
   assert_contains "$github" 'gh issue edit <issue-number> --repo "<owner>/<repo>" --add-label "loom:wip"'
   assert_contains "$github" 'gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"'
   assert_contains "$github" 'gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"'
@@ -891,6 +906,8 @@ run_test "Release a failing reviewer Claim through rework" \
   test_release_a_failing_reviewer_claim_through_rework
 run_test "Report a partial reviewer handoff as incomplete" \
   test_report_a_partial_reviewer_handoff_as_incomplete
+run_test "Install the symmetric reviewer Claim protocol" \
+  test_install_the_symmetric_reviewer_claim_protocol
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
 run_test "Add an advisory Claim without replacing lifecycle" \

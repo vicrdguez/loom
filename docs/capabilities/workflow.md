@@ -22,6 +22,13 @@ How Loom's skills move from architecture discovery to a proposed, tested, and su
   `test/install_test.sh::test_add_advisory_claim_without_replacing_lifecycle`,
   `test/install_test.sh::test_forge_command_contracts_preserve_wip_claims`,
   `test/install_test.sh::test_retain_an_interrupted_claim` (added 2026-07-15)
+- Board reviewers claim only unclaimed `loom:review` PRs before accessing a Change. Failed or
+  interrupted Claims stay visible until a human requeues them; completed review hands the Claim to
+  `loom:done` or `loom:rework` without leaving `loom:wip` behind.
+  -> `test/install_test.sh::test_filter_reviewer_claims_before_selecting_one_item`,
+  `test/install_test.sh::test_claim_reviewer_before_local_access`,
+  `test/install_test.sh::test_release_a_passing_reviewer_claim_through_done`,
+  `test/install_test.sh::test_release_a_failing_reviewer_claim_through_rework` (added 2026-07-15)
 
 ## Decisions
 - Architecture review is discovery, not a required loop phase; durable updates begin only after a
