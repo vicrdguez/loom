@@ -9,10 +9,11 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
   the same model with a warning, and acquire independent stale-recoverable local locks.
   → `test/loom_workers.test.ts::select and remember a Role model natively`,
   `test/loom_workers.test.ts::allow matching Role models with a warning`,
-  `test/loom_workers.test.ts::recover a stale Role lock` (added 2026-07-15)
+  `test/loom_workers.test.ts::recover a stale Role lock atomically under contention` (added 2026-07-15)
 - GitHub Board listing and assignment include open lifecycle objects and Claims, exclude `loom:wip`
   before oldest selection, and prefer implementor rework.
   → `test/loom_workers.test.ts::list all open Board Changes`,
+  `test/loom_workers.test.ts::degrade when GitHub Board listing fails`,
   `test/loom_workers.test.ts::exclude Claims before oldest-item selection`,
   `test/loom_workers.test.ts::prefer eligible rework over ready work` (added 2026-07-15)
 - Every exact assignment runs in a fresh in-memory Pi SDK session with standard project resources and
@@ -29,6 +30,7 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
 - Pause, resume, retry, stop, and parent-session shutdown preserve Role isolation while disposing
   Worker context, timers, and locks within the cancellation bound.
   → `test/loom_workers.test.ts::apply deterministic lane controls`,
+  `test/loom_workers.test.ts::stop does not launch after Board selection settles`,
   `test/loom_workers.test.ts::stop extension resources on parent session shutdown`,
   `test/loom_workers.test.ts::keep the other Role operational after failure` (added 2026-07-15)
 - Pi shows compact native status and only completed assistant summaries or lifecycle failures as
