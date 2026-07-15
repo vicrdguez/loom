@@ -30,33 +30,27 @@ interface PiWorkerOptions {
 }
 
 interface PiSdk {
-  AuthStorage: { create(): unknown };
-  ModelRegistry: { create(auth: unknown): { find(provider: string, model: string): unknown } };
-  DefaultResourceLoader: new (options: any) => { reload(): Promise<void> };
+  createAgentSessionServices(options: { cwd: string }): Promise<{
+    modelRegistry: { find(provider: string, model: string): unknown };
+  }>;
+  createAgentSessionFromServices(options: any): Promise<{ session: any }>;
   SessionManager: { inMemory(cwd: string): unknown };
-  getAgentDir(): string;
-  createAgentSession(options: any): Promise<{ session: any }>;
 }
 
 export function createPiSessionFactory(
   loadSdk: () => Promise<PiSdk> = () => import("@earendil-works/pi-coding-agent") as Promise<PiSdk>,
 ): (options: SessionOptions) => Promise<SessionLike> {
-  return async ({ projectRoot, model }) => {
+  return async ({ projectRoot, model, signal }) => {
     const sdk = await loadSdk();
-    const authStorage = sdk.AuthStorage.create();
-    const modelRegistry = sdk.ModelRegistry.create(authStorage);
-    const selectedModel = modelRegistry.find(model.provider, model.model);
+    signal?.throwIfAborted();
+    const services = await sdk.createAgentSessionServices({ cwd: projectRoot });
+    signal?.throwIfAborted();
+    const selectedModel = services.modelRegistry.find(model.provider, model.model);
     if (!selectedModel) throw new Error(`Pi model is no longer available: ${model.provider}/${model.model}`);
-    const resourceLoader = new sdk.DefaultResourceLoader({ cwd: projectRoot, agentDir: sdk.getAgentDir() });
-    await resourceLoader.reload();
-    const { session } = await sdk.createAgentSession({
-      cwd: projectRoot,
-      agentDir: sdk.getAgentDir(),
-      authStorage,
-      modelRegistry,
+    const { session } = await sdk.createAgentSessionFromServices({
+      services,
       model: selectedModel,
       thinkingLevel: model.thinking,
-      resourceLoader,
       sessionManager: sdk.SessionManager.inMemory(projectRoot),
     });
     return {

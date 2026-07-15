@@ -185,27 +185,40 @@ test("discard context between consecutive work units", async () => {
 test("load standard project policy around the bundled Role contract", async () => {
   const calls: string[] = [];
   let prompt = "";
+  let providersLoaded = false;
+  const customModel = { provider: "extension-provider", id: "extension-model" };
+  const resourceLoader = { id: "project-resources" };
+  const modelRegistry = {
+    find(provider: string, model: string) {
+      calls.push(`find:${provider}/${model}`);
+      return providersLoaded && provider === customModel.provider && model === customModel.id
+        ? customModel
+        : undefined;
+    },
+  };
+  const services = { modelRegistry, resourceLoader };
+  const session = {
+    sessionId: "fresh",
+    messages: [],
+    subscribe() { return () => {}; },
+    async prompt(value: string) { prompt = value; },
+    async abort() {},
+    dispose() {},
+  };
   const createSession = createPiSessionFactory(async () => ({
-    AuthStorage: { create: () => ({}) },
-    ModelRegistry: { create: () => ({ find: () => ({ id: "model" }) }) },
-    DefaultResourceLoader: class {
-      constructor(options: any) { calls.push(`loader:${options.cwd}`); }
-      async reload() { calls.push("reload"); }
-    },
     SessionManager: { inMemory: (cwd: string) => { calls.push(`memory:${cwd}`); return {}; } },
-    getAgentDir: () => "/agent",
-    createAgentSession: async (options: any) => {
-      calls.push(`create:${options.cwd}`);
-      return { session: {
-        sessionId: "fresh",
-        messages: [],
-        subscribe() { return () => {}; },
-        async prompt(value: string) { prompt = value; },
-        async abort() {},
-        dispose() {},
-      } };
+    createAgentSessionServices: async ({ cwd }: any) => {
+      calls.push(`services:${cwd}`);
+      providersLoaded = true;
+      return services;
     },
-  }));
+    createAgentSessionFromServices: async (options: any) => {
+      calls.push(`create:${options.services === services}`);
+      assert.equal(options.services.resourceLoader, resourceLoader);
+      assert.equal(options.model, customModel);
+      return { session };
+    },
+  } as any));
   const worker = new PiWorker({
     projectRoot: "/project",
     loadContract: async () => "BUNDLED ROLE CONTRACT",
@@ -213,10 +226,15 @@ test("load standard project policy around the bundled Role contract", async () =
   });
   const run = await worker.start("reviewer", {
     kind: "pr", number: 42, title: "change", url: "url", lifecycle: "review", claimed: false, createdAt: "now",
-  }, { provider: "provider", model: "model", thinking: "high" }, () => {});
+  }, { provider: "extension-provider", model: "extension-model", thinking: "high" }, () => {});
   await run.settled;
 
-  assert.deepEqual(calls, ["loader:/project", "reload", "memory:/project", "create:/project"]);
+  assert.deepEqual(calls, [
+    "services:/project",
+    "find:extension-provider/extension-model",
+    "memory:/project",
+    "create:true",
+  ]);
   assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
   assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);
   assert.match(prompt, /"number":42/);
