@@ -36,7 +36,9 @@ age ordering and one-item selection. After selecting one eligible PR, add `loom:
 The Claim exists only after that forge operation succeeds. If it fails or its outcome is ambiguous,
 report the forge failure and exit without fetching, checking out, or inspecting the Change.
 Only then check out its branch in the change worktree and read the brief (`docs/loom/changes/<slug>/`).
-Process **one** PR, then exit — re-firing with a fresh context is the scheduler's job.
+If a claimed review fails or is interrupted, leave `loom:wip` in place; workers never auto-expire or silently release a Claim.
+A human explicitly requeues it by removing only `loom:wip` through the Board reference. Process **one** PR,
+then exit — re-firing with a fresh context is the scheduler's job.
 
 ## Verify independently — never on trust
 

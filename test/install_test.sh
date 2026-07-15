@@ -299,6 +299,12 @@ test_claim_reviewer_before_local_access() {
   assert_contains "$codeberg" 'Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless this'
 }
 
+test_retain_an_interrupted_reviewer_claim() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'If a claimed review fails or is interrupted, leave `loom:wip` in place'
+  assert_contains "$review" 'workers never auto-expire or silently release a Claim'
+}
+
 test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
@@ -829,6 +835,8 @@ run_test "Filter reviewer Claims before selecting one PR" \
   test_filter_reviewer_claims_before_selecting_one_item
 run_test "Claim reviewer work before local access" \
   test_claim_reviewer_before_local_access
+run_test "Retain an interrupted reviewer Claim" \
+  test_retain_an_interrupted_reviewer_claim
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
 run_test "Add an advisory Claim without replacing lifecycle" \
