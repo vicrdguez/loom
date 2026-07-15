@@ -13,7 +13,7 @@ and issue edits, so several board operations use the Forgejo API with the token 
 
 ## The five labels
 
-`loom:ready` (issue → implementor) · `loom:wip` (additive implementor claim) · `loom:review` (PR → reviewer) · `loom:rework` (PR →
+`loom:ready` (issue → implementor) · `loom:wip` (additive Worker Claim) · `loom:review` (PR → reviewer) · `loom:rework` (PR →
 implementor) · `loom:done` (PR → human merges). One active board object per change (issue XOR PR);
 the implementor closes the issue when it opens the PR.
 
@@ -46,15 +46,15 @@ tea issue create --title "<slug>" --labels "loom:ready" \
 
 ```sh
 tea issue list --labels "loom:ready" --state open --fields index,title,labels --output simple
-tea pr    list --labels "loom:review" --state open --fields index,title,head --output simple  # reviewer
+tea pr    list --labels "loom:review" --state open --fields index,title,head,labels --output simple  # reviewer
 tea pr    list --labels "loom:rework" --state open --fields index,title,head,labels --output simple
 ```
 
-For implementor lists, first discard every row whose labels contain `loom:wip`, then choose the
+For reviewer and implementor lists, first discard every row whose labels contain `loom:wip`, then choose the
 lowest remaining index. Filtering must happen before selection so a claimed older object cannot hide
 a later eligible item. An issue title is its `<slug>`; check out the PR's head branch to rework.
 
-## Claim and requeue implementor work
+## Claim and requeue work
 
 Forgejo mutations require numeric repository label IDs. Resolve names from the label list once:
 
@@ -107,8 +107,32 @@ curl -fsSL -X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: app
   -d "{\"labels\":[$review_id]}"
 ```
 
-Resolve and send the numeric `loom:rework` or `loom:done` ID for reviewer transitions. Forgejo PRs
-share the issue label endpoint; the PR index is its issue index.
+For a reviewer pass or bounce, replace `loom:review + loom:wip` with its target label:
+
+```sh
+# reviewer bounces: review + wip → rework
+rework_id=$(resolve_label_id loom:rework)
+curl -fsSL -X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<pr-index>/labels" \
+  -d "{\"labels\":[$rework_id]}"
+
+# reviewer passes: review + wip → done
+done_id=$(resolve_label_id loom:done)
+curl -fsSL -X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<pr-index>/labels" \
+  -d "{\"labels\":[$done_id]}"
+```
+
+Forgejo PRs share the issue label endpoint; the PR index is its issue index.
+
+## Inspect handoff state
+
+After a reviewer transition, inspect the labels before reporting success:
+
+```sh
+curl -fsSL -H "Authorization: token $FORGEJO_TOKEN" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<pr-index>" | jq -r '.labels[].name'
+```
 
 ## Feedback as PR comments (loom-review)
 

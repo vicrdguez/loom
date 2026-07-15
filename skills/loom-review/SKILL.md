@@ -31,9 +31,14 @@ Label swaps and PR comments come from the per-forge board reference, keyed off `
 
 ## Claim exactly one review
 
-Claim the oldest open `loom:review` PR, check out its branch in the change worktree, and read the
-brief on that branch (`docs/loom/changes/<slug>/`). Process **one** PR, then exit — re-firing with a
-fresh context is the scheduler's job.
+Claim the oldest open `loom:review` PR without `loom:wip`; the Board reference filters Claims before
+age ordering and one-item selection. After selecting one eligible PR, add `loom:wip` **without removing** `loom:review`.
+The Claim exists only after that forge operation succeeds. If it fails or its outcome is ambiguous,
+report the forge failure and exit without fetching, checking out, or inspecting the Change.
+Only then check out its branch in the change worktree and read the brief (`docs/loom/changes/<slug>/`).
+If a claimed review fails or is interrupted, leave `loom:wip` in place; workers never auto-expire or silently release a Claim.
+A human explicitly requeues it by removing only `loom:wip` through the Board reference. Process **one** PR,
+then exit — re-firing with a fresh context is the scheduler's job.
 
 ## Verify independently — never on trust
 
@@ -76,6 +81,7 @@ When verification passes **and** the review finds no blocking issue, **land the 
 the PR body as the human acceptance checklist. Then **label the PR `loom:done`** (swap off
 `loom:review`). Push the archive commit to the PR branch.
 
+Hand off through the Board reference: remove `loom:review` and `loom:wip` as it adds `loom:done`.
 The change now awaits the **human's merge** — merging a `loom:done` PR *is* the acceptance, and it
 lands the archive on `main`. The reviewer does not merge.
 
@@ -83,13 +89,21 @@ lands the archive on `main`. The reviewer does not merge.
 
 When verification fails **or** the review surfaces a blocking issue:
 
-1. **Leave findings as PR comments** — a summary verdict comment plus inline comments anchored to the
-   offending lines. Be specific: which check failed and where, which test is weak and why it wouldn't
-   catch a regression, which quality-skill rule tripped.
-2. **Label the PR `loom:rework`** (swap off `loom:review`) to hand it back to the implementor.
+1. **Leave findings as PR comments before the handoff** — a summary verdict comment plus inline comments
+   anchored to the offending lines. Be specific: which check failed and where, which test is weak and why
+   it wouldn't catch a regression, which quality-skill rule tripped.
+2. Through the Board reference, remove `loom:review` and `loom:wip` as it adds `loom:rework` to hand it
+   back to the implementor.
 3. **Modify no code.** Fixing is the implementor's job (`loom-implement` composing `loom-apply`);
    collapsing that boundary is exactly what this stage exists to prevent. Do not archive, do not mark
    `loom:done`.
+
+## Confirm every handoff completed
+
+After each handoff command, inspect the Board state. A successful handoff ends at `loom:done` or `loom:rework` with `loom:wip` removed.
+If a comment, label operation, or Board lookup fails or leaves
+any other state, report the exact incomplete Board state and stop. Do not present the review as successfully handed off,
+and never remove `loom:wip` just to clean up a partial handoff.
 
 ## Single-model: run in a fresh context
 

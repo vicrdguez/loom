@@ -17,7 +17,7 @@ this file adds only the board layer (labels, issues, PR labels, comments) on top
 | Label | Rides on | Means → next role |
 |---|---|---|
 | `loom:ready` | issue | proposed change awaiting an **implementor** |
-| `loom:wip` | issue or PR | additive marker: an **implementor is working** |
+| `loom:wip` | issue or PR | additive Worker Claim |
 | `loom:review` | PR | built change awaiting a **reviewer** |
 | `loom:rework` | PR | reviewer bounced it back to the **implementor** |
 | `loom:done` | PR | passed review, awaiting the **human's merge** |
@@ -33,7 +33,7 @@ Run before the first publish. `gh label create` fails if the label already exist
 ```sh
 for spec in \
   "loom:ready|Proposed change awaiting an implementor|0e8a16" \
-  "loom:wip|An implementor is actively working this change|fbca04" \
+  "loom:wip|A Worker Claim is active on this change|fbca04" \
   "loom:review|Built change awaiting a reviewer|1d76db" \
   "loom:rework|Reviewer bounced it back to the implementor|d93f0b" \
   "loom:done|Passed review, awaiting the human merge|5319e7"; do
@@ -70,11 +70,12 @@ gh issue list --repo "<owner>/<repo>" --label "loom:ready" --state open \
 
 The issue title is the `<slug>`; check out its branch (`git fetch origin <slug> && git checkout <slug>`).
 
-**A review PR (loom-review):** the oldest open `loom:review` PR is next.
+**A review PR (loom-review):** the oldest open `loom:review` PR without `loom:wip` is next.
 
 ```sh
 gh pr list --repo "<owner>/<repo>" --label "loom:review" --state open \
-  --json number,headRefName,title --jq 'sort_by(.number) | .[0]'
+  --search "-label:loom:wip sort:created-asc" --limit 1 \
+  --json number,headRefName,title --jq '.[0]'
 ```
 
 **A rework PR (loom-implement):** the oldest `loom:rework` PR without `loom:wip` is a bounce to pick back up.
@@ -85,7 +86,7 @@ gh pr list --repo "<owner>/<repo>" --label "loom:rework" --state open \
   --json number,headRefName,title --jq '.[0]'
 ```
 
-## Claim and requeue implementor work
+## Claim and requeue work
 
 Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless the
 command succeeds:
@@ -93,6 +94,7 @@ command succeeds:
 ```sh
 gh issue edit <issue-number> --repo "<owner>/<repo>" --add-label "loom:wip" # ready issue
 gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"       # rework PR
+gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"       # review PR
 ```
 
 Failed or interrupted work stays claimed. A human requeues it by removing only `loom:wip`:
@@ -120,13 +122,21 @@ gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"
 A PR carries exactly one lifecycle label at a time. Remove the old, add the new:
 
 ```sh
-# reviewer bounces:  review → rework
-gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review" --add-label "loom:rework"
+# reviewer bounces:  review + wip → rework
+gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review,loom:wip" --add-label "loom:rework"
 # implementor re-presents after rework:  rework + wip → review
 gh pr edit <pr-number> --repo "<owner>/<repo>" \
   --remove-label "loom:rework,loom:wip" --add-label "loom:review"
-# reviewer passes:  review → done
-gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review" --add-label "loom:done"
+# reviewer passes:  review + wip → done
+gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review,loom:wip" --add-label "loom:done"
+```
+
+## Inspect handoff state
+
+After a reviewer transition, inspect the labels before reporting success:
+
+```sh
+gh pr view <pr-number> --repo "<owner>/<repo>" --json labels --jq '[.labels[].name]'
 ```
 
 ## Feedback as PR comments (loom-review)

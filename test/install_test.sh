@@ -270,6 +270,106 @@ test_filter_claims_before_selecting_one_item() {
   assert_contains "$codeberg" 'Filtering must happen before selection'
 }
 
+test_filter_reviewer_claims_before_selecting_one_item() {
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" 'gh pr list --repo "<owner>/<repo>" --label "loom:review" --state open \
+  --search "-label:loom:wip sort:created-asc" --limit 1'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" 'glab mr    list --label "loom:review" --not-label "loom:wip"'
+  assert_contains "$gitlab" '--sort asc --per-page 1'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'tea pr    list --labels "loom:review" --state open --fields index,title,head,labels --output simple'
+  assert_contains "$codeberg" 'For reviewer and implementor lists, first discard every row whose labels contain `loom:wip`'
+}
+
+test_claim_reviewer_before_local_access() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'add `loom:wip` **without removing** `loom:review`'
+  assert_contains "$review" 'The Claim exists only after that forge operation succeeds'
+  assert_contains "$review" 'without fetching, checking out, or inspecting the Change'
+
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" 'gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"       # review PR'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" 'glab mr update <mr-iid> --label "loom:wip"'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless this'
+}
+
+test_retain_an_interrupted_reviewer_claim() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'If a claimed review fails or is interrupted, leave `loom:wip` in place'
+  assert_contains "$review" 'workers never auto-expire or silently release a Claim'
+}
+
+test_human_requeues_an_interrupted_review() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'A human explicitly requeues it by removing only `loom:wip`'
+  for forge in github gitlab codeberg; do
+    file=$(board_file "loom-implement/reference/$forge.md")
+    assert_contains "$file" 'A human requeues it by removing only `loom:wip`'
+  done
+}
+
+test_release_a_passing_reviewer_claim_through_done() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'remove `loom:review` and `loom:wip` as it adds `loom:done`'
+
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" '--remove-label "loom:review,loom:wip" --add-label "loom:done"'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" '--unlabel "loom:review,loom:wip" --label "loom:done"'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" '-d "{\"labels\":[$done_id]}"'
+}
+
+test_release_a_failing_reviewer_claim_through_rework() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'Leave findings as PR comments before the handoff'
+  assert_contains "$review" 'remove `loom:review` and `loom:wip` as it adds `loom:rework`'
+
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" '--remove-label "loom:review,loom:wip" --add-label "loom:rework"'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" '--unlabel "loom:review,loom:wip" --label "loom:rework"'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" '-d "{\"labels\":[$rework_id]}"'
+}
+
+test_report_a_partial_reviewer_handoff_as_incomplete() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'After each handoff command, inspect the Board state'
+  assert_contains "$review" '`loom:done` or `loom:rework` with `loom:wip` removed'
+  assert_contains "$review" 'report the exact incomplete Board state'
+  assert_contains "$review" 'Do not present the review as successfully handed off'
+  for forge in github gitlab codeberg; do
+    assert_contains "$(board_file "loom-implement/reference/$forge.md")" 'Inspect handoff state'
+  done
+}
+
+test_install_the_symmetric_reviewer_claim_protocol() {
+  ensure_board_install
+  assert_contains "$BOARD_PROJECT/AGENTS.md" '`loom:wip` (additive Worker Claim)'
+  assert_contains "$BOARD_PROJECT/AGENTS.md" 'Implementors and reviewers skip claimed objects and add `wip` before work'
+
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'Claim the oldest open `loom:review` PR without `loom:wip`'
+  for forge in github gitlab codeberg; do
+    assert_contains "$(board_file "loom-implement/reference/$forge.md")" 'additive Worker Claim'
+  done
+
+  assert_contains "$ROOT/README.md" 'a **worker currently working** it (additive Claim)'
+  assert_contains "$ROOT/docs/capabilities/workflow.md" 'Board reviewers claim only unclaimed `loom:review` PRs'
+}
+
 test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
@@ -330,7 +430,7 @@ test_report_partial_handoff_as_incomplete() {
 
 test_forge_command_contracts_preserve_wip_claims() {
   github=$(board_file loom-implement/reference/github.md)
-  assert_contains "$github" '"loom:wip|An implementor is actively working this change|fbca04"'
+  assert_contains "$github" '"loom:wip|A Worker Claim is active on this change|fbca04"'
   assert_contains "$github" 'gh issue edit <issue-number> --repo "<owner>/<repo>" --add-label "loom:wip"'
   assert_contains "$github" 'gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"'
   assert_contains "$github" 'gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"'
@@ -796,6 +896,22 @@ run_test "Provision the WIP label on every supported forge" \
   test_provision_wip_label_on_every_supported_forge
 run_test "Filter Claims before selecting one item" \
   test_filter_claims_before_selecting_one_item
+run_test "Filter reviewer Claims before selecting one PR" \
+  test_filter_reviewer_claims_before_selecting_one_item
+run_test "Claim reviewer work before local access" \
+  test_claim_reviewer_before_local_access
+run_test "Retain an interrupted reviewer Claim" \
+  test_retain_an_interrupted_reviewer_claim
+run_test "Human requeues an interrupted review" \
+  test_human_requeues_an_interrupted_review
+run_test "Release a passing reviewer Claim through done" \
+  test_release_a_passing_reviewer_claim_through_done
+run_test "Release a failing reviewer Claim through rework" \
+  test_release_a_failing_reviewer_claim_through_rework
+run_test "Report a partial reviewer handoff as incomplete" \
+  test_report_a_partial_reviewer_handoff_as_incomplete
+run_test "Install the symmetric reviewer Claim protocol" \
+  test_install_the_symmetric_reviewer_claim_protocol
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
 run_test "Add an advisory Claim without replacing lifecycle" \

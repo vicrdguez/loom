@@ -11,7 +11,7 @@ from `project.md`.**
 
 ## The five labels
 
-`loom:ready` (issue → implementor) · `loom:wip` (additive implementor claim) · `loom:review` (MR → reviewer) · `loom:rework` (MR →
+`loom:ready` (issue → implementor) · `loom:wip` (additive Worker Claim) · `loom:review` (MR → reviewer) · `loom:rework` (MR →
 implementor) · `loom:done` (MR → human merges). One active board object per change (issue XOR MR);
 the implementor closes the issue when it opens the MR.
 
@@ -39,7 +39,8 @@ glab issue create --title "<slug>" --label "loom:ready" \
 ```sh
 glab issue list --label "loom:ready" --not-label "loom:wip" \
   --order created_at --sort asc --per-page 1 --output json
-glab mr    list --label "loom:review" --output json    # reviewer
+glab mr    list --label "loom:review" --not-label "loom:wip" \
+  --order created_at --sort asc --per-page 1 --output json # reviewer
 glab mr    list --label "loom:rework" --not-label "loom:wip" \
   --order created_at --sort asc --per-page 1 --output json
 ```
@@ -47,7 +48,7 @@ glab mr    list --label "loom:rework" --not-label "loom:wip" \
 The forge excludes `loom:wip` before applying the one-item limit, so claimed older work cannot hide
 a later eligible item.
 
-## Claim and requeue implementor work
+## Claim and requeue work
 
 Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless the
 command succeeds:
@@ -78,12 +79,20 @@ glab issue update <issue-iid> --unlabel "loom:wip"
 ## Swap labels (rework + wip → review; review → rework/done)
 
 ```sh
-# reviewer bounces:  review → rework
-glab mr update <iid> --unlabel "loom:review" --label "loom:rework"
+# reviewer bounces:  review + wip → rework
+glab mr update <iid> --unlabel "loom:review,loom:wip" --label "loom:rework"
 # implementor re-presents:  rework + wip → review
 glab mr update <iid> --unlabel "loom:rework,loom:wip" --label "loom:review"
-# reviewer passes:  review → done
-glab mr update <iid> --unlabel "loom:review" --label "loom:done"
+# reviewer passes:  review + wip → done
+glab mr update <iid> --unlabel "loom:review,loom:wip" --label "loom:done"
+```
+
+## Inspect handoff state
+
+After a reviewer transition, inspect the labels before reporting success:
+
+```sh
+glab mr view <mr-iid> --output json | jq -r '.labels[]'
 ```
 
 ## Feedback as MR comments (loom-review)
