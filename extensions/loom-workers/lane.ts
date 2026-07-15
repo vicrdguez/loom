@@ -27,7 +27,13 @@ interface BoardReader {
 }
 
 interface WorkerStarter {
-  start(role: Role, item: BoardItem, model: ModelChoice, onActivity: (activity: WorkerActivity) => void): Promise<WorkerRun>;
+  start(
+    role: Role,
+    item: BoardItem,
+    model: ModelChoice,
+    onActivity: (activity: WorkerActivity) => void,
+    signal?: AbortSignal,
+  ): Promise<WorkerRun>;
 }
 
 export interface LaneOptions {
@@ -60,6 +66,7 @@ export class RoleLane {
   private current?: BoardItem;
   private lastOutcome?: string;
   private active?: WorkerRun;
+  private starting?: AbortController;
   private observedClaim = false;
   private orphanedClaim = false;
   private manualPause = false;
@@ -145,6 +152,8 @@ export class RoleLane {
     this.state = "stopped";
     this.manualPause = false;
     this.clearTimer();
+    this.starting?.abort();
+    this.starting = undefined;
     const run = this.active;
     this.active = undefined;
     if (run) {
@@ -196,13 +205,17 @@ export class RoleLane {
     this.state = "running";
     this.lastOutcome = "Worker started";
     this.changed();
+    const startup = new AbortController();
+    this.starting = startup;
     try {
       const run = await this.options.worker.start(
         this.options.role,
         item,
         this.options.model,
         (activity) => this.options.onActivity?.(activity),
+        startup.signal,
       );
+      if (this.starting === startup) this.starting = undefined;
       if (generation !== this.generation || this.state === "stopped") {
         try {
           await settleWithin(run.abort().catch(() => {}), this.cancelTimeoutMs);
@@ -218,6 +231,8 @@ export class RoleLane {
       if (generation === this.generation && this.state !== "stopped") {
         await this.reconcile({ ok: false, error: error instanceof Error ? error.message : String(error) });
       }
+    } finally {
+      if (this.starting === startup) this.starting = undefined;
     }
   }
 

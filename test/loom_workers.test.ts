@@ -513,6 +513,55 @@ test("stop does not launch after Board selection settles", async () => {
   assert.equal(lane.snapshot().state, "stopped");
 });
 
+test("stop cancels Worker startup before session creation finishes", async () => {
+  const scheduler = new FakeScheduler();
+  const creating = deferred<void>();
+  const session = deferred<any>();
+  let prompted = false;
+  let disposed = false;
+  let released = false;
+  const item = {
+    kind: "issue" as const, number: 1, title: "change", url: "u", lifecycle: "ready" as const,
+    claimed: false, createdAt: "1",
+  };
+  const lane = new RoleLane({
+    role: "implementor",
+    board: { next: async () => item, observe: async () => item },
+    worker: new PiWorker({
+      projectRoot: root,
+      loadContract: async () => "contract",
+      createSession: async () => {
+        creating.resolve();
+        return session.promise;
+      },
+    }),
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+    releaseLock: async () => { released = true; },
+  });
+
+  lane.start();
+  await scheduler.runNext();
+  await creating.promise;
+  await lane.stop();
+  session.resolve({
+    id: "late",
+    messages: [],
+    subscribe() { return () => {}; },
+    async prompt() { prompted = true; },
+    async abort() {},
+    dispose() { disposed = true; },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(prompted, false);
+  assert.equal(disposed, true);
+  assert.equal(released, true);
+  assert.equal(lane.snapshot().state, "stopped");
+});
+
 test("classify Board state after session settlement", async () => {
   const cases = [
     ["implementor", "left", "cooldown"],

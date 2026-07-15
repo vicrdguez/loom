@@ -20,6 +20,7 @@ interface SessionOptions {
   role: Role;
   projectRoot: string;
   model: ModelChoice;
+  signal?: AbortSignal;
 }
 
 interface PiWorkerOptions {
@@ -89,9 +90,16 @@ export class PiWorker {
     item: BoardItem,
     model: ModelChoice,
     onActivity: (activity: WorkerActivity) => void,
+    signal?: AbortSignal,
   ): Promise<WorkerRun> {
+    signal?.throwIfAborted();
     const contract = await this.options.loadContract(role);
-    const session = await this.options.createSession({ role, projectRoot: this.options.projectRoot, model });
+    signal?.throwIfAborted();
+    const session = await this.options.createSession({ role, projectRoot: this.options.projectRoot, model, signal });
+    if (signal?.aborted) {
+      session.dispose();
+      signal.throwIfAborted();
+    }
     if (session.messages.length !== 0) {
       session.dispose();
       throw new Error("Worker session must start with empty message history");
