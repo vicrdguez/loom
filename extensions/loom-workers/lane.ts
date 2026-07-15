@@ -60,6 +60,10 @@ export class RoleLane {
   private active?: WorkerRun;
   private observedClaim = false;
   private orphanedClaim = false;
+  private manualPause = false;
+  private pauseReason?: "manual" | "retry" | "blocked";
+  private resumeAction?: () => Promise<void> | void;
+  private lockReleased = false;
 
   constructor(options: LaneOptions) {
     this.options = options;
@@ -89,6 +93,67 @@ export class RoleLane {
       lastOutcome: this.lastOutcome,
       nextPoll: this.nextPoll,
     };
+  }
+
+  pause(): void {
+    if (this.state === "stopped" || this.state === "paused") return;
+    this.manualPause = true;
+    if (this.active || this.state === "running") {
+      this.lastOutcome = "Pause requested; waiting for Worker settlement";
+      this.changed();
+      return;
+    }
+    const previous = this.state;
+    this.pauseManually(previous === "awaiting-requeue"
+      ? () => { this.state = "awaiting-requeue"; this.setTimer(0, () => this.observeAwaiting()); this.changed(); }
+      : previous === "retry-backoff"
+        ? () => { this.state = "retry-backoff"; this.setTimer(0, () => this.retryExact()); this.changed(); }
+        : () => this.pollForWork());
+  }
+
+  resume(): boolean {
+    if (this.state !== "paused" || this.pauseReason !== "manual") return false;
+    this.manualPause = false;
+    this.pauseReason = undefined;
+    const action = this.resumeAction ?? (() => this.pollForWork());
+    this.resumeAction = undefined;
+    this.state = "idle";
+    this.setTimer(0, action);
+    this.changed();
+    return true;
+  }
+
+  retry(): boolean {
+    if (this.state === "awaiting-requeue" || this.pauseReason !== "retry") return false;
+    this.retries = 0;
+    this.pauseReason = undefined;
+    this.state = "retry-backoff";
+    this.setTimer(0, () => this.retryExact());
+    this.changed();
+    return true;
+  }
+
+  async stop(): Promise<void> {
+    if (this.state === "stopped" && this.lockReleased) return;
+    this.state = "stopped";
+    this.manualPause = false;
+    this.clearTimer();
+    const run = this.active;
+    this.active = undefined;
+    if (run) {
+      try {
+        await run.abort();
+        await settleWithin(run.settled, 5_000);
+      } finally {
+        run.dispose();
+      }
+    }
+    this.current = undefined;
+    if (!this.lockReleased) {
+      this.lockReleased = true;
+      await this.options.releaseLock?.();
+    }
+    this.changed();
   }
 
   private async pollForWork(): Promise<void> {
@@ -157,7 +222,12 @@ export class RoleLane {
       if (!isEligible(this.options.role, observed)) return this.resolve();
       if (observed.claimed) return this.awaitRequeue();
       this.retries += 1;
-      if (this.retries >= 3) return this.pauseFor("Three pre-Claim Worker failures");
+      if (this.retries >= 3) return this.pauseFor("Three pre-Claim Worker failures", true);
+      if (this.manualPause) return this.pauseManually(() => {
+        this.state = "retry-backoff";
+        this.setTimer(0, () => this.retryExact());
+        this.changed();
+      });
       this.state = "retry-backoff";
       this.setTimer(BACKOFF_MS[this.retries - 1], () => this.retryExact());
       this.changed();
@@ -224,11 +294,15 @@ export class RoleLane {
   }
 
   private resolve(): void {
-    this.state = "cooldown";
     this.lastOutcome = "Board handoff resolved the assignment";
     this.retries = 0;
     this.observedClaim = false;
     this.orphanedClaim = false;
+    if (this.manualPause) {
+      this.current = undefined;
+      return this.pauseManually(() => this.pollForWork());
+    }
+    this.state = "cooldown";
     this.setTimer(COOLDOWN_MS, () => {
       this.current = undefined;
       return this.pollForWork();
@@ -237,14 +311,28 @@ export class RoleLane {
   }
 
   private awaitRequeue(): void {
+    if (this.manualPause) return this.pauseManually(() => {
+      this.state = "awaiting-requeue";
+      this.setTimer(0, () => this.observeAwaiting());
+      this.changed();
+    });
     this.state = "awaiting-requeue";
     this.setTimer(POLL_MS, () => this.observeAwaiting());
     this.changed();
   }
 
-  private pauseFor(reason: string): void {
+  private pauseManually(resume: () => Promise<void> | void): void {
     this.clearTimer();
     this.state = "paused";
+    this.pauseReason = "manual";
+    this.resumeAction = resume;
+    this.changed();
+  }
+
+  private pauseFor(reason: string, retryable = false): void {
+    this.clearTimer();
+    this.state = "paused";
+    this.pauseReason = retryable ? "retry" : "blocked";
     this.lastOutcome = reason;
     this.changed();
   }
@@ -270,6 +358,18 @@ export class RoleLane {
 
   private changed() {
     this.options.onChange?.(this.snapshot());
+  }
+}
+
+async function settleWithin(settled: Promise<unknown>, timeout: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      settled.then(() => undefined),
+      new Promise<void>((resolve) => { timer = setTimeout(resolve, timeout); }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 

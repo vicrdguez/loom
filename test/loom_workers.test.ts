@@ -634,6 +634,113 @@ test("keep the other Role operational after failure", async () => {
   assert.equal(coordinator.status().find((row) => row.role === "reviewer")?.state, "cooldown");
 });
 
+test("apply deterministic lane controls", async () => {
+  const item = { kind: "issue" as const, number: 1, title: "change", url: "u", lifecycle: "ready" as const, claimed: false, createdAt: "1" };
+  const choice = { provider: "p", model: "m", thinking: "off" as const };
+
+  // pause lets a running Worker settle and prevents another launch
+  {
+    const scheduler = new FakeScheduler();
+    const done = deferred<{ ok: boolean }>();
+    const lane = new RoleLane({
+      role: "implementor",
+      board: { next: async () => item, observe: async () => ({ ...item, lifecycle: "done" as const }) },
+      worker: { start: async () => ({ sessionId: "s", settled: done.promise, abort: async () => {}, dispose() {} }) },
+      model: choice, schedule: scheduler.schedule, now: () => scheduler.now,
+    });
+    lane.start();
+    await scheduler.runNext();
+    lane.pause();
+    assert.equal(lane.snapshot().state, "running");
+    done.resolve({ ok: true });
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(lane.snapshot().state, "paused");
+  }
+
+  // resume clears a manual pause
+  {
+    const scheduler = new FakeScheduler();
+    const lane = new RoleLane({
+      role: "reviewer",
+      board: { next: async () => undefined, observe: async () => undefined },
+      worker: { start: async () => { throw new Error("unexpected"); } },
+      model: choice, schedule: scheduler.schedule, now: () => scheduler.now,
+    });
+    lane.start();
+    lane.pause();
+    assert.equal(lane.resume(), true);
+    await scheduler.runNext();
+    assert.equal(lane.snapshot().state, "idle");
+  }
+
+  // retry resets a failure pause, but cannot bypass an active Claim
+  {
+    const scheduler = new FakeScheduler();
+    const runs = Array.from({ length: 4 }, () => deferred<{ ok: boolean }>());
+    let starts = 0;
+    const lane = new RoleLane({
+      role: "implementor",
+      board: { next: async () => item, observe: async () => item },
+      worker: { start: async () => ({ sessionId: String(starts), settled: runs[starts++].promise, abort: async () => {}, dispose() {} }) },
+      model: choice, schedule: scheduler.schedule, now: () => scheduler.now,
+    });
+    lane.start();
+    await scheduler.runNext();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      runs[attempt].resolve({ ok: false });
+      await new Promise((resolve) => setImmediate(resolve));
+      await new Promise((resolve) => setImmediate(resolve));
+      if (attempt < 2) await scheduler.runNext();
+    }
+    assert.equal(lane.retry(), true);
+    assert.equal(lane.snapshot().retries, 0);
+    await scheduler.runNext();
+    assert.equal(starts, 4);
+  }
+  {
+    const scheduler = new FakeScheduler();
+    const done = deferred<{ ok: boolean }>();
+    const lane = new RoleLane({
+      role: "implementor",
+      board: { next: async () => item, observe: async () => ({ ...item, claimed: true }) },
+      worker: { start: async () => ({ sessionId: "s", settled: done.promise, abort: async () => {}, dispose() {} }) },
+      model: choice, schedule: scheduler.schedule, now: () => scheduler.now,
+    });
+    lane.start();
+    await scheduler.runNext();
+    done.resolve({ ok: true });
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(lane.retry(), false);
+    assert.equal(lane.snapshot().state, "awaiting-requeue");
+  }
+
+  // stop aborts, disposes, and releases the lock
+  {
+    const scheduler = new FakeScheduler();
+    const done = deferred<{ ok: boolean }>();
+    let aborted = false;
+    let disposed = false;
+    let released = false;
+    const lane = new RoleLane({
+      role: "implementor",
+      board: { next: async () => item, observe: async () => item },
+      worker: { start: async () => ({
+        sessionId: "s", settled: done.promise,
+        abort: async () => { aborted = true; done.resolve({ ok: false }); },
+        dispose() { disposed = true; },
+      }) },
+      model: choice, schedule: scheduler.schedule, now: () => scheduler.now,
+      releaseLock: async () => { released = true; },
+    });
+    lane.start();
+    await scheduler.runNext();
+    await lane.stop();
+    assert.deepEqual([aborted, disposed, released, lane.snapshot().state], [true, true, true, "stopped"]);
+  }
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));

@@ -119,4 +119,32 @@ export class Coordinator {
       this.lanes.get(role)?.snapshot() ?? { role, state: "stopped" },
     );
   }
+
+  pause(role: Role): boolean {
+    const lane = this.lanes.get(role);
+    if (!lane) return false;
+    lane.pause();
+    return true;
+  }
+
+  resume(role: Role): boolean {
+    return this.lanes.get(role)?.resume() ?? false;
+  }
+
+  retry(role: Role): boolean {
+    return this.lanes.get(role)?.retry() ?? false;
+  }
+
+  async stop(role: Role): Promise<boolean> {
+    const lane = this.lanes.get(role);
+    if (!lane) return false;
+    await lane.stop();
+    this.lanes.delete(role);
+    this.options.onChange?.();
+    return true;
+  }
+
+  async shutdown(): Promise<void> {
+    await Promise.all(Array.from(this.lanes.keys(), (role) => this.stop(role)));
+  }
 }
