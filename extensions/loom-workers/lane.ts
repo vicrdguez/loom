@@ -225,6 +225,7 @@ export class RoleLane {
 
   private resolve(): void {
     this.state = "cooldown";
+    this.lastOutcome = "Board handoff resolved the assignment";
     this.retries = 0;
     this.observedClaim = false;
     this.orphanedClaim = false;

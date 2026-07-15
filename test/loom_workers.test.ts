@@ -323,6 +323,31 @@ test("classify Board state after session settlement", async () => {
   }
 });
 
+test("let Board truth override session failure", async () => {
+  const scheduler = new FakeScheduler();
+  const done = deferred<{ ok: boolean; error: string }>();
+  const item = { kind: "pr" as const, number: 1, title: "change", url: "u", lifecycle: "review" as const, claimed: false, createdAt: "1" };
+  const lane = new RoleLane({
+    role: "reviewer",
+    board: {
+      next: async () => item,
+      observe: async () => ({ ...item, lifecycle: "done" as const }),
+    },
+    worker: { start: async () => ({ sessionId: "s", settled: done.promise, abort: async () => {}, dispose() {} }) },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+  lane.start();
+  await scheduler.runNext();
+  done.resolve({ ok: false, error: "session exploded" });
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(lane.snapshot().state, "cooldown");
+  assert.doesNotMatch(lane.snapshot().lastOutcome ?? "", /session exploded/);
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));
