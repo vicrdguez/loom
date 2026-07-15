@@ -98,6 +98,13 @@ When verification fails **or** the review surfaces a blocking issue:
    collapsing that boundary is exactly what this stage exists to prevent. Do not archive, do not mark
    `loom:done`.
 
+## Confirm every handoff completed
+
+After each handoff command, inspect the Board state. A successful handoff ends at `loom:done` or `loom:rework` with `loom:wip` removed.
+If a comment, label operation, or Board lookup fails or leaves
+any other state, report the exact incomplete Board state and stop. Do not present the review as successfully handed off,
+and never remove `loom:wip` just to clean up a partial handoff.
+
 ## Single-model: run in a fresh context
 
 Review is a standing stage even when one model did everything — but only if it runs **independently of

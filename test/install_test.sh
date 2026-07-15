@@ -343,6 +343,14 @@ test_release_a_failing_reviewer_claim_through_rework() {
   assert_contains "$codeberg" '-d "{\"labels\":[$rework_id]}"'
 }
 
+test_report_a_partial_reviewer_handoff_as_incomplete() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'After each handoff command, inspect the Board state'
+  assert_contains "$review" '`loom:done` or `loom:rework` with `loom:wip` removed'
+  assert_contains "$review" 'report the exact incomplete Board state'
+  assert_contains "$review" 'Do not present the review as successfully handed off'
+}
+
 test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
@@ -881,6 +889,8 @@ run_test "Release a passing reviewer Claim through done" \
   test_release_a_passing_reviewer_claim_through_done
 run_test "Release a failing reviewer Claim through rework" \
   test_release_a_failing_reviewer_claim_through_rework
+run_test "Report a partial reviewer handoff as incomplete" \
+  test_report_a_partial_reviewer_handoff_as_incomplete
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
 run_test "Add an advisory Claim without replacing lifecycle" \
