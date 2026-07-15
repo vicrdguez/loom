@@ -381,6 +381,40 @@ test("pause after three pre-Claim failures", async () => {
   assert.equal(scheduler.jobs.length, 0);
 });
 
+test("retry automatically after human requeue", async () => {
+  const scheduler = new FakeScheduler();
+  const first = deferred<{ ok: boolean }>();
+  const second = deferred<{ ok: boolean }>();
+  const item = { kind: "pr" as const, number: 1, title: "change", url: "u", lifecycle: "review" as const, claimed: false, createdAt: "1" };
+  let claimed = true;
+  let starts = 0;
+  const lane = new RoleLane({
+    role: "reviewer",
+    board: { next: async () => item, observe: async () => ({ ...item, claimed }) },
+    worker: { start: async () => ({
+      sessionId: `session-${++starts}`,
+      settled: starts === 1 ? first.promise : second.promise,
+      abort: async () => {},
+      dispose() {},
+    }) },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+
+  lane.start();
+  await scheduler.runNext();
+  first.resolve({ ok: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(lane.snapshot().state, "awaiting-requeue");
+  claimed = false;
+  await scheduler.runNext();
+  assert.equal(starts, 2);
+  assert.equal(lane.snapshot().state, "running");
+  second.resolve({ ok: true });
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));
