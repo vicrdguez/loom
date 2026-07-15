@@ -122,8 +122,8 @@ gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"
 A PR carries exactly one lifecycle label at a time. Remove the old, add the new:
 
 ```sh
-# reviewer bounces:  review → rework
-gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review" --add-label "loom:rework"
+# reviewer bounces:  review + wip → rework
+gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review,loom:wip" --add-label "loom:rework"
 # implementor re-presents after rework:  rework + wip → review
 gh pr edit <pr-number> --repo "<owner>/<repo>" \
   --remove-label "loom:rework,loom:wip" --add-label "loom:review"

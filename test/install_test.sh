@@ -328,6 +328,21 @@ test_release_a_passing_reviewer_claim_through_done() {
   assert_contains "$codeberg" '-d "{\"labels\":[$done_id]}"'
 }
 
+test_release_a_failing_reviewer_claim_through_rework() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'Leave findings as PR comments before the handoff'
+  assert_contains "$review" 'remove `loom:review` and `loom:wip` as it adds `loom:rework`'
+
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" '--remove-label "loom:review,loom:wip" --add-label "loom:rework"'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" '--unlabel "loom:review,loom:wip" --label "loom:rework"'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" '-d "{\"labels\":[$rework_id]}"'
+}
+
 test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
@@ -864,6 +879,8 @@ run_test "Human requeues an interrupted review" \
   test_human_requeues_an_interrupted_review
 run_test "Release a passing reviewer Claim through done" \
   test_release_a_passing_reviewer_claim_through_done
+run_test "Release a failing reviewer Claim through rework" \
+  test_release_a_failing_reviewer_claim_through_rework
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
 run_test "Add an advisory Claim without replacing lifecycle" \

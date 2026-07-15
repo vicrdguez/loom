@@ -89,10 +89,11 @@ lands the archive on `main`. The reviewer does not merge.
 
 When verification fails **or** the review surfaces a blocking issue:
 
-1. **Leave findings as PR comments** — a summary verdict comment plus inline comments anchored to the
-   offending lines. Be specific: which check failed and where, which test is weak and why it wouldn't
-   catch a regression, which quality-skill rule tripped.
-2. **Label the PR `loom:rework`** (swap off `loom:review`) to hand it back to the implementor.
+1. **Leave findings as PR comments before the handoff** — a summary verdict comment plus inline comments
+   anchored to the offending lines. Be specific: which check failed and where, which test is weak and why
+   it wouldn't catch a regression, which quality-skill rule tripped.
+2. Through the Board reference, remove `loom:review` and `loom:wip` as it adds `loom:rework` to hand it
+   back to the implementor.
 3. **Modify no code.** Fixing is the implementor's job (`loom-implement` composing `loom-apply`);
    collapsing that boundary is exactly what this stage exists to prevent. Do not archive, do not mark
    `loom:done`.

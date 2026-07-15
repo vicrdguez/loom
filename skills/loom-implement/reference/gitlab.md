@@ -79,8 +79,8 @@ glab issue update <issue-iid> --unlabel "loom:wip"
 ## Swap labels (rework + wip → review; review → rework/done)
 
 ```sh
-# reviewer bounces:  review → rework
-glab mr update <iid> --unlabel "loom:review" --label "loom:rework"
+# reviewer bounces:  review + wip → rework
+glab mr update <iid> --unlabel "loom:review,loom:wip" --label "loom:rework"
 # implementor re-presents:  rework + wip → review
 glab mr update <iid> --unlabel "loom:rework,loom:wip" --label "loom:review"
 # reviewer passes:  review + wip → done

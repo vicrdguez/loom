@@ -107,17 +107,23 @@ curl -fsSL -X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: app
   -d "{\"labels\":[$review_id]}"
 ```
 
-For a reviewer pass, replace `loom:review + loom:wip` with `loom:done`:
+For a reviewer pass or bounce, replace `loom:review + loom:wip` with its target label:
 
 ```sh
+# reviewer bounces: review + wip → rework
+rework_id=$(resolve_label_id loom:rework)
+curl -fsSL -X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<pr-index>/labels" \
+  -d "{\"labels\":[$rework_id]}"
+
+# reviewer passes: review + wip → done
 done_id=$(resolve_label_id loom:done)
 curl -fsSL -X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
   "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<pr-index>/labels" \
   -d "{\"labels\":[$done_id]}"
 ```
 
-Resolve and send the numeric `loom:rework` ID for reviewer bounces. Forgejo PRs share the issue
-label endpoint; the PR index is its issue index.
+Forgejo PRs share the issue label endpoint; the PR index is its issue index.
 
 ## Feedback as PR comments (loom-review)
 
