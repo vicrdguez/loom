@@ -7,16 +7,20 @@ have it synthesized from your existing AGENTS.md / README / manifests, or fill i
 -->
 
 ## Stack
-POSIX `sh` installer and Markdown documentation.
+Dependency-free TypeScript Pi extension, Node's built-in test runner, POSIX `sh` installer, and
+Markdown documentation.
 
 ## Commands
-- **Test:** `sh test/install_test.sh`
-- **Build:** None.
+- **Test:** `npm test`
+- **Worker tests:** `node --test test/loom_workers.test.ts`
+- **Installer tests:** `sh test/install_test.sh`
+- **Build:** None; Pi and modern Node load TypeScript directly.
 - **Lint/format:** None configured.
 
 ## Conventions
-- Keep `install.sh` POSIX `sh` with no language runtime dependency.
-- Use dependency-free shell tests for installer behavior.
+- Keep the Pi package free of runtime dependencies and lifecycle scripts; Pi core imports are peers.
+- Keep `install.sh` POSIX `sh` with no language runtime dependency and no Pi-specific behavior.
+- Use Node's built-in test runner for the Worker console and dependency-free shell tests for installer behavior.
 
 ## Forge
 <!-- loom-submit reads this to open the PR. The token is an ENV VAR, never written here. -->

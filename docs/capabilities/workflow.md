@@ -29,13 +29,24 @@ How Loom's skills move from architecture discovery to a proposed, tested, and su
   `test/install_test.sh::test_claim_reviewer_before_local_access`,
   `test/install_test.sh::test_release_a_passing_reviewer_claim_through_done`,
   `test/install_test.sh::test_release_a_failing_reviewer_claim_through_rework` (added 2026-07-15)
+- Pi's Worker console schedules independent implementor and reviewer Role lanes from exact Board
+  assignments. Every work unit gets fresh context, while the injected Role skill retains Claims,
+  lifecycle transitions, repository work, and the one-Change contract.
+  -> `test/loom_workers.test.ts::run implementor and reviewer concurrently`,
+  `test/loom_workers.test.ts::never substitute an ineligible assignment`,
+  `test/loom_workers.test.ts::load standard project policy around the bundled Role contract`
+  (added 2026-07-15)
 
 ## Decisions
 - Architecture review is discovery, not a required loop phase; durable updates begin only after a
   candidate enters `/loom-explore`.
 - Board Claims are durable, additive, and advisory rather than locks or leases —
   [ADR-0007](../adr/0007-board-claims-use-additive-wip-label.md).
+- Board-topology trust comes from a fresh context per Worker; Model diversity is optional —
+  [ADR-0006](../adr/0006-board-topology-requires-independent-contexts.md).
+- Pi hosts Board scheduling without moving Board or repository mutation into the coordinator —
+  [ADR-0008](../adr/0008-worker-console-runs-as-pi-extension.md).
 
 ## Language
-**Architecture review**, **Change**, **Claim**, **Durable doc**, **Capability doc**, **Verification**,
-and **Acceptance** - see [CONTEXT.md](../../CONTEXT.md).
+**Architecture review**, **Change**, **Claim**, **Board**, **Worker**, **Role lane**, **Durable doc**,
+**Capability doc**, **Verification**, and **Acceptance** - see [CONTEXT.md](../../CONTEXT.md).

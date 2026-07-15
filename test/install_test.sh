@@ -483,10 +483,10 @@ test_explain_remaining_simultaneous_selection_race() {
   assert_contains "$implement" 'advisory Claim, not an atomic ownership lock'
   assert_contains "$implement" 'two workers that select the same object'
   assert_contains "$implement" 'before either Claim is visible can still race'
-  assert_contains "$ROOT/README.md" 'The board and its five labels'
+  assert_contains "$ROOT/README.md" 'The Board and its five labels'
   assert_contains "$ROOT/README.md" 'not an atomic lock'
   assert_contains "$ROOT/AGENTS.tmpl.md" 'five labels:'
-  assert_contains "$ROOT/AGENTS.tmpl.md" 'interrupted claims remain `wip` until'
+  assert_contains "$ROOT/AGENTS.tmpl.md" 'interrupted Claims remain'
   assert_contains "$ROOT/AGENTS.tmpl.md" 'a human requeues them'
 }
 

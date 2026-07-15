@@ -2,6 +2,15 @@
 How Loom installs and removes its skills, docs scaffold, and agent instructions.
 
 ## Behaviors
+- Pi installs Loom directly from Git as one Pi package, loading every `loom-*` skill and the Worker
+  console without a build, lifecycle script, npm artifact, or automatic project initialization.
+  -> `test/loom_workers.test.ts::discover the extension and every Loom skill`,
+  `test/loom_workers.test.ts::leave projects unchanged on package installation` (added 2026-07-15)
+- Claude Code's plugin and Pi's Git package are the preferred Harness-native paths. `install.sh`
+  remains a behavior-compatible, deprecated path for Codex CLI and OpenCode and has no Pi option or
+  runtime warning.
+  -> `test/loom_workers.test.ts::prefer Harness-native installation without changing the legacy installer`,
+  `test/install_test.sh` (added 2026-07-15)
 - OpenCode project installs write skills to the agent-compatible `.agents/skills` directory; global
   installs continue to use `~/.config/opencode/skills`.
   -> `test/install_test.sh::test_opencode_project_install_uses_agent_compatible_skills_dir`
@@ -44,7 +53,10 @@ How Loom installs and removes its skills, docs scaffold, and agent instructions.
 ## Decisions
 - Remote install uses GitHub latest stable releases by default, with explicit refs for pinned or
   development installs. - [ADR-0001](../adr/0001-remote-install-uses-github-latest-release.md)
+- Loom prefers each Harness's native package mechanism when available. -
+  [ADR-0009](../adr/0009-prefer-harness-native-distribution.md)
 
 ## Language
-**Harness**, **Project install**, **Global install**, **Remote install**, and **Release archive** -
+**Harness**, **Pi package**, **Harness-native install**, **Project install**, **Global install**,
+**Remote install**, and **Release archive** -
 see [CONTEXT.md](../../CONTEXT.md).

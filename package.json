@@ -1,0 +1,17 @@
+{
+  "name": "loom-pi-package",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "keywords": ["pi-package"],
+  "scripts": {
+    "test": "node --test test/*.test.ts && sh test/install_test.sh"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": ["./extensions/loom-workers/index.ts"],
+    "skills": ["./skills"]
+  }
+}

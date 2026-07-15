@@ -29,6 +29,14 @@ Label swaps and PR comments come from the per-forge board reference, keyed off `
 - Codeberg / Forgejo / Gitea → [../loom-implement/reference/codeberg.md](../loom-implement/reference/codeberg.md)
 - GitLab → [../loom-implement/reference/gitlab.md](../loom-implement/reference/gitlab.md)
 
+## Exact scheduler assignment
+
+When the prompt contains a `Scheduler assignment`, verify only that exact Board object by PR number
+before fetching or inspecting it. It must still carry `loom:review` without `loom:wip`; then Claim it
+through the normal command below. If it is missing, claimed, or otherwise ineligible,
+exit without touching the Change. Never select or Claim a replacement. Without a scheduler assignment, use the
+normal discovery rules below.
+
 ## Claim exactly one review
 
 Claim the oldest open `loom:review` PR without `loom:wip`; the Board reference filters Claims before
