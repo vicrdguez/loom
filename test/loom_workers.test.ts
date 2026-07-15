@@ -226,6 +226,23 @@ test("list all open Board Changes", async () => {
   ]);
 });
 
+test("observe one exact GitHub Board object", async () => {
+  const commands: string[][] = [];
+  const board = new GitHubBoard("owner/repo", async (args) => {
+    commands.push(args);
+    return { stdout: JSON.stringify({
+      number: 7, title: "change", url: "u", createdAt: "1", state: "OPEN",
+      headRefName: "change", labels: [{ name: "loom:review" }, { name: "loom:wip" }],
+    }) };
+  });
+  const observed = await board.observe({
+    kind: "pr", number: 7, title: "old", url: "u", createdAt: "1", lifecycle: "review", claimed: false,
+  });
+  assert.deepEqual(commands[0].slice(0, 5), ["pr", "view", "7", "--repo", "owner/repo"]);
+  assert.equal(observed?.claimed, true);
+  assert.equal(observed?.headRefName, "change");
+});
+
 test("prefer eligible rework over ready work", async () => {
   const rows: Record<string, any[]> = {
     "loom:ready": [{ number: 1, title: "ready", url: "u1", createdAt: "2026-01-01", state: "OPEN", labels: [{ name: "loom:ready" }] }],

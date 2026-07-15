@@ -30,7 +30,9 @@ export class GitHubBoard {
       const result = await this.run([
         search.kind, "list", "--repo", this.repo, "--state", "open",
         "--label", `loom:${search.lifecycle}`, "--limit", "100",
-        "--json", "number,title,url,createdAt,state,labels,headRefName",
+        "--json", search.kind === "pr"
+          ? "number,title,url,createdAt,state,labels,headRefName"
+          : "number,title,url,createdAt,state,labels",
       ]);
       const rows = parseRows(result.stdout);
       for (const row of rows) {
@@ -45,10 +47,45 @@ export class GitHubBoard {
           claimed: labels.includes("loom:wip"),
           createdAt: row.createdAt,
           headRefName: row.headRefName,
+          open: true,
         });
       }
     }
     return items;
+  }
+
+  async observe(item: BoardItem): Promise<BoardItem | undefined> {
+    let result: CommandResult;
+    try {
+      result = await this.run([
+        item.kind, "view", String(item.number), "--repo", this.repo,
+        "--json", item.kind === "pr"
+          ? "number,title,url,createdAt,state,labels,headRefName"
+          : "number,title,url,createdAt,state,labels",
+      ]);
+    } catch (error) {
+      if (/not found|could not resolve/i.test(error instanceof Error ? error.message : String(error))) return undefined;
+      throw error;
+    }
+    if (result.code && result.code !== 0) {
+      if (/not found|could not resolve/i.test(result.stderr ?? "")) return undefined;
+      throw new Error(result.stderr || `gh exited ${result.code}`);
+    }
+    const row = JSON.parse(result.stdout);
+    const labels = labelNames(row.labels);
+    const lifecycle = (["ready", "review", "rework", "done"] as const)
+      .find((name) => labels.includes(`loom:${name}`)) ?? "none";
+    return {
+      kind: item.kind,
+      number: row.number,
+      title: row.title,
+      url: row.url,
+      createdAt: row.createdAt,
+      lifecycle,
+      claimed: labels.includes("loom:wip"),
+      headRefName: row.headRefName,
+      open: row.state === "OPEN",
+    };
   }
 
   async next(role: Role): Promise<BoardItem | undefined> {

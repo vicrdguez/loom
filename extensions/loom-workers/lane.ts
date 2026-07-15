@@ -274,6 +274,7 @@ export class RoleLane {
 }
 
 export function isEligible(role: Role, item: BoardItem): boolean {
+  if (item.open === false) return false;
   return role === "reviewer"
     ? item.kind === "pr" && item.lifecycle === "review"
     : (item.kind === "issue" && item.lifecycle === "ready") ||

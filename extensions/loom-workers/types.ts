@@ -1,5 +1,5 @@
 export type Role = "implementor" | "reviewer";
-export type Lifecycle = "ready" | "review" | "rework" | "done";
+export type Lifecycle = "ready" | "review" | "rework" | "done" | "none";
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
 export interface BoardItem {
@@ -11,6 +11,7 @@ export interface BoardItem {
   claimed: boolean;
   createdAt: string;
   headRefName?: string;
+  open?: boolean;
 }
 
 export interface ModelChoice {
