@@ -305,6 +305,15 @@ test_retain_an_interrupted_reviewer_claim() {
   assert_contains "$review" 'workers never auto-expire or silently release a Claim'
 }
 
+test_human_requeues_an_interrupted_review() {
+  review=$(board_file loom-review/SKILL.md)
+  assert_contains "$review" 'A human explicitly requeues it by removing only `loom:wip`'
+  for forge in github gitlab codeberg; do
+    file=$(board_file "loom-implement/reference/$forge.md")
+    assert_contains "$file" 'A human requeues it by removing only `loom:wip`'
+  done
+}
+
 test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
@@ -837,6 +846,8 @@ run_test "Claim reviewer work before local access" \
   test_claim_reviewer_before_local_access
 run_test "Retain an interrupted reviewer Claim" \
   test_retain_an_interrupted_reviewer_claim
+run_test "Human requeues an interrupted review" \
+  test_human_requeues_an_interrupted_review
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
 run_test "Add an advisory Claim without replacing lifecycle" \
