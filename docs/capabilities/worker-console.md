@@ -17,8 +17,8 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
   `test/loom_workers.test.ts::exclude Claims before oldest-item selection`,
   `test/loom_workers.test.ts::prefer eligible rework over ready work` (added 2026-07-15)
 - Every exact assignment runs in a fresh in-memory Pi SDK session with standard project resources,
-  including extension-registered models, and the bundled Role contract; context is disposed without
-  cleaning repository work.
+  including extension-registered models, and the bundled Role contract; Pi extension startup,
+  resource-discovery, and shutdown hooks run before context disposal without cleaning repository work.
   → `test/loom_workers.test.ts::load standard project policy around the bundled Role contract`,
   `test/loom_workers.test.ts::discard context between consecutive work units`,
   `test/loom_workers.test.ts::dispose context without cleaning repository work` (added 2026-07-15)
@@ -33,6 +33,7 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
   → `test/loom_workers.test.ts::apply deterministic lane controls`,
   `test/loom_workers.test.ts::stop does not launch after Board selection settles`,
   `test/loom_workers.test.ts::stop cancels Worker startup before session creation finishes`,
+  `test/loom_workers.test.ts::parent shutdown cancels an in-flight coordinator start`,
   `test/loom_workers.test.ts::stop extension resources on parent session shutdown`,
   `test/loom_workers.test.ts::keep the other Role operational after failure` (added 2026-07-15)
 - Pi shows compact native status and only completed assistant summaries or lifecycle failures as
