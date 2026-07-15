@@ -226,6 +226,32 @@ test("start available Roles independently", async () => {
   assert.deepEqual(saved, ["implementor"]);
 });
 
+test("allow matching Role models with a warning", async () => {
+  const warnings: string[] = [];
+  const identities: object[] = [];
+  const coordinator = new Coordinator({
+    board: { listOpen: async () => [] },
+    worker: {} as any,
+    acquire: async () => ({ owner: { pid: 1 }, release: async () => {} }),
+    saveChoice: async () => {},
+    createLane: (options) => {
+      const identity = {};
+      identities.push(identity);
+      return {
+        start() {},
+        snapshot: () => ({ role: options.role, state: "idle", model: options.model, retries: 0, identity }),
+      } as any;
+    },
+    onWarning: (warning) => warnings.push(warning),
+  });
+  const choice = { provider: "same", model: "model", thinking: "high" as const };
+  const result = await coordinator.start("both", { implementor: choice, reviewer: choice });
+
+  assert.deepEqual(result.started, ["implementor", "reviewer"]);
+  assert.notEqual(identities[0], identities[1]);
+  assert.match(warnings.join("\n"), /Model diversity is absent/);
+});
+
 test("list all open Board Changes", async () => {
   const rows: Record<string, any[]> = {
     "loom:ready": [
