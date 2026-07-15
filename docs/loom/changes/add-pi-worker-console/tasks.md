@@ -22,7 +22,7 @@
 - [x] B19  Dispose context without cleaning repository work              → behavior.md §6/4
 - [x] B20  Classify Board state after session settlement                 → behavior.md §7/1
 - [x] B21  Let Board truth override session failure                      → behavior.md §7/2
-- [ ] B22  Pause after three pre-Claim failures                          → behavior.md §7/3
+- [x] B22  Pause after three pre-Claim failures                          → behavior.md §7/3
 - [ ] B23  Retry automatically after human requeue                       → behavior.md §7/4
 - [ ] B24  Pause when an observed Claim becomes orphaned                 → behavior.md §7/5
 - [ ] B25  Observe only the active assignment while running              → behavior.md §7/6

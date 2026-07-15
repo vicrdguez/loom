@@ -348,6 +348,39 @@ test("let Board truth override session failure", async () => {
   assert.doesNotMatch(lane.snapshot().lastOutcome ?? "", /session exploded/);
 });
 
+test("pause after three pre-Claim failures", async () => {
+  const scheduler = new FakeScheduler();
+  const runs = [deferred<{ ok: boolean }>(), deferred<{ ok: boolean }>(), deferred<{ ok: boolean }>()];
+  const item = { kind: "issue" as const, number: 1, title: "change", url: "u", lifecycle: "ready" as const, claimed: false, createdAt: "1" };
+  let starts = 0;
+  const lane = new RoleLane({
+    role: "implementor",
+    board: { next: async () => item, observe: async () => item },
+    worker: { start: async () => ({
+      sessionId: `s${starts}`,
+      settled: runs[starts++].promise,
+      abort: async () => {},
+      dispose() {},
+    }) },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+
+  lane.start();
+  await scheduler.runNext();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    runs[attempt].resolve({ ok: false });
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+    if (attempt < 2) await scheduler.runNext();
+  }
+  assert.equal(starts, 3);
+  assert.equal(lane.snapshot().retries, 3);
+  assert.equal(lane.snapshot().state, "paused");
+  assert.equal(scheduler.jobs.length, 0);
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));
