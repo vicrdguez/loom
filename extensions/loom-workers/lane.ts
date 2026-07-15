@@ -282,7 +282,7 @@ export class RoleLane {
 
   private async observeAwaiting(): Promise<void> {
     const assigned = this.current;
-    if (!assigned || this.state !== "awaiting-requeue") return;
+    if (!assigned || this.state === "stopped" || this.state === "paused" || this.active) return;
     try {
       const observed = await this.options.board.observe(assigned);
       if (!observed) return this.pauseFor("Observed Claim became orphaned");
@@ -293,6 +293,7 @@ export class RoleLane {
         await this.launch(observed);
         return;
       }
+      this.state = "awaiting-requeue";
       this.setTimer(POLL_MS, () => this.observeAwaiting());
       this.changed();
     } catch (error) {

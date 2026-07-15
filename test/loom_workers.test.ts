@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import test from "node:test";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createPiSessionFactory, PiWorker } from "../extensions/loom-workers/pi-worker.ts";
+import { createPiSessionFactory, loadBundledContract, PiWorker } from "../extensions/loom-workers/pi-worker.ts";
 import { acquireRoleLock, loadChoice, saveChoice } from "../extensions/loom-workers/local-state.ts";
 import { selectModelChoice } from "../extensions/loom-workers/models.ts";
 import { GitHubBoard } from "../extensions/loom-workers/github.ts";
@@ -219,6 +219,7 @@ test("load standard project policy around the bundled Role contract", async () =
   assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
   assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);
   assert.match(prompt, /"number":42/);
+  assert.match(await loadBundledContract("reviewer"), /^---\nname: loom-review/);
 });
 
 test("refuse unsafe or unsupported startup", async () => {
@@ -356,12 +357,17 @@ test("list all open Board Changes", async () => {
     return { stdout: JSON.stringify(rows[label]) };
   });
 
-  assert.deepEqual((await board.listOpen()).map((item) => [item.lifecycle, item.number, item.claimed]), [
+  const items = await board.listOpen();
+  assert.deepEqual(items.map((item) => [item.lifecycle, item.number, item.claimed]), [
     ["ready", 1, false],
     ["review", 2, true],
     ["rework", 3, false],
     ["done", 4, false],
   ]);
+  const { formatList } = await import("../extensions/loom-workers/index.ts");
+  const text = formatList(items);
+  for (const lifecycle of ["ready", "review", "rework", "done"]) assert.match(text, new RegExp(`loom:${lifecycle}`));
+  assert.match(text, /#2 review \[loom:wip\] — u2/);
 });
 
 test("report current Role status", () => {
@@ -599,6 +605,37 @@ test("retry automatically after human requeue", async () => {
   assert.equal(starts, 2);
   assert.equal(lane.snapshot().state, "running");
   second.resolve({ ok: true });
+});
+
+test("recover awaiting-requeue observation after a Board failure", async () => {
+  const scheduler = new FakeScheduler();
+  const done = deferred<{ ok: boolean }>();
+  const item = { kind: "pr" as const, number: 1, title: "change", url: "u", lifecycle: "review" as const, claimed: true, createdAt: "1" };
+  let observations = 0;
+  const lane = new RoleLane({
+    role: "reviewer",
+    board: {
+      next: async () => ({ ...item, claimed: false }),
+      observe: async () => {
+        observations++;
+        if (observations === 2) throw new Error("temporary");
+        return item;
+      },
+    },
+    worker: { start: async () => ({ sessionId: "s", settled: done.promise, abort: async () => {}, dispose() {} }) },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+  lane.start();
+  await scheduler.runNext();
+  done.resolve({ ok: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  await scheduler.runNext();
+  assert.equal(lane.snapshot().state, "degraded");
+  await scheduler.runNext();
+  assert.equal(lane.snapshot().state, "awaiting-requeue");
 });
 
 test("pause when an observed Claim becomes orphaned", async () => {

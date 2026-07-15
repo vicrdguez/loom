@@ -61,7 +61,7 @@ export async function acquireRoleLock(project: string, role: Role, options: Lock
       } catch {
         // A truncated lock is stale.
       }
-      if (current && isAlive(current.pid)) {
+      if (current && Number.isSafeInteger(current.pid) && current.pid > 0 && isAlive(current.pid)) {
         throw new Error(`${role} Role is owned by process ${current.pid} since ${current.startedAt}`);
       }
       try {

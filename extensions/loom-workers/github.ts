@@ -29,7 +29,7 @@ export class GitHubBoard {
     for (const search of searches) {
       const result = await this.run([
         search.kind, "list", "--repo", this.repo, "--state", "open",
-        "--label", `loom:${search.lifecycle}`, "--limit", "100",
+        "--label", `loom:${search.lifecycle}`, "--limit", "10000",
         "--json", search.kind === "pr"
           ? "number,title,url,createdAt,state,labels,headRefName"
           : "number,title,url,createdAt,state,labels",

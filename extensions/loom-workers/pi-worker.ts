@@ -90,10 +90,8 @@ export class PiWorker {
     model: ModelChoice,
     onActivity: (activity: WorkerActivity) => void,
   ): Promise<WorkerRun> {
-    const [contract, session] = await Promise.all([
-      this.options.loadContract(role),
-      this.options.createSession({ role, projectRoot: this.options.projectRoot, model }),
-    ]);
+    const contract = await this.options.loadContract(role);
+    const session = await this.options.createSession({ role, projectRoot: this.options.projectRoot, model });
     if (session.messages.length !== 0) {
       session.dispose();
       throw new Error("Worker session must start with empty message history");

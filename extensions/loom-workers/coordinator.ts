@@ -77,8 +77,9 @@ export class Coordinator {
         result.failures[role] = `${role} lane is already running locally`;
         continue;
       }
+      let lock: RoleLock | undefined;
       try {
-        const lock = await this.options.acquire(role);
+        lock = await this.options.acquire(role);
         const lane = (this.options.createLane ?? ((laneOptions) => new RoleLane(laneOptions)))({
           role,
           board: this.options.board as Required<Pick<Board, "next" | "observe">>,
@@ -97,6 +98,8 @@ export class Coordinator {
           this.options.onWarning?.(`Could not save ${role} model choice: ${error instanceof Error ? error.message : String(error)}`);
         }
       } catch (error) {
+        this.lanes.delete(role);
+        await lock?.release();
         result.failures[role] = error instanceof Error ? error.message : String(error);
       }
     }
