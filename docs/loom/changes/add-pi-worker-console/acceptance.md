@@ -20,11 +20,11 @@
 
 ## Notes from implementation
 `pi -e . --list-models` loaded the local package successfully without a build step. Automated Node
-coverage exercises package discovery, GitHub parsing and command failures, model preferences,
-extension-registered model discovery, atomic stale-lock contention, fresh session isolation, Pi
-extension startup/resource/shutdown hooks, lane reconciliation/controls (including shutdown during
-Board selection, Role-lock acquisition, or session creation), parent shutdown wiring, disposal, and
-filtered Activity; the POSIX installer suite continues to cover the
-unchanged compatibility installer. Pre-Claim retries wait 5 seconds and then 30 seconds before
-pausing after the third failure. Live model calls, GitHub lifecycle timing, and TUI rendering remain
-the human-checkable residue above.
+coverage exercises package discovery, GitHub parsing and command/transport failures, model
+preferences, extension-registered model discovery, atomic stale-lock contention, fresh session
+isolation, Pi extension startup/resource/shutdown hooks, lane reconciliation/controls (including
+exact-assignment pause/resume and shutdown during Board selection, Role-lock acquisition, or session
+creation), parent shutdown wiring, disposal, and display-width-safe filtered Activity; the POSIX
+installer suite continues to cover the unchanged compatibility installer. Pre-Claim retries wait 5
+seconds and then 30 seconds before pausing after the third failure. Live model calls, GitHub lifecycle
+timing, and visual TUI presentation remain the human-checkable residue above.

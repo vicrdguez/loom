@@ -11,9 +11,10 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
   `test/loom_workers.test.ts::allow matching Role models with a warning`,
   `test/loom_workers.test.ts::recover a stale Role lock atomically under contention` (added 2026-07-15)
 - GitHub Board listing and assignment include open lifecycle objects and Claims, exclude `loom:wip`
-  before oldest selection, and prefer implementor rework.
+  before oldest selection, prefer implementor rework, and surface observation transport failures.
   → `test/loom_workers.test.ts::list all open Board Changes`,
   `test/loom_workers.test.ts::degrade when GitHub Board listing fails`,
+  `test/loom_workers.test.ts::degrade when exact Board observation has a transport failure`,
   `test/loom_workers.test.ts::exclude Claims before oldest-item selection`,
   `test/loom_workers.test.ts::prefer eligible rework over ready work` (added 2026-07-15)
 - Every exact assignment runs in a fresh in-memory Pi SDK session with standard project resources,
@@ -22,9 +23,11 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
   → `test/loom_workers.test.ts::load standard project policy around the bundled Role contract`,
   `test/loom_workers.test.ts::discard context between consecutive work units`,
   `test/loom_workers.test.ts::dispose context without cleaning repository work` (added 2026-07-15)
-- Role lanes reconcile from Board truth, retry pre-Claim failures with fresh context, await explicit
-  requeue after a Claim, and pause on exhausted retries or orphaned Claims.
+- Role lanes reconcile from Board truth, preserve the exact assignment across pause/resume, retry
+  pre-Claim failures with fresh context, await explicit requeue after a Claim, and pause on exhausted
+  retries or orphaned Claims.
   → `test/loom_workers.test.ts::classify Board state after session settlement`,
+  `test/loom_workers.test.ts::resume retries the exact assignment after a reconciliation Board failure`,
   `test/loom_workers.test.ts::pause after three pre-Claim failures`,
   `test/loom_workers.test.ts::retry automatically after human requeue`,
   `test/loom_workers.test.ts::pause when an observed Claim becomes orphaned` (added 2026-07-15)
@@ -36,8 +39,8 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
   `test/loom_workers.test.ts::parent shutdown cancels an in-flight coordinator start`,
   `test/loom_workers.test.ts::stop extension resources on parent session shutdown`,
   `test/loom_workers.test.ts::keep the other Role operational after failure` (added 2026-07-15)
-- Pi shows compact native status and only completed assistant summaries or lifecycle failures as
-  TUI-only Activity; Worker reasoning and tool mechanics never enter parent model context.
+- Pi shows compact native status and display-width-safe completed assistant summaries or lifecycle
+  failures as TUI-only Activity; Worker reasoning and tool mechanics never enter parent model context.
   → `test/loom_workers.test.ts::report current Role status`,
   `test/loom_workers.test.ts::keep Worker narration out of parent model context` (added 2026-07-15)
 
