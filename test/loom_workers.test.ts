@@ -825,6 +825,32 @@ test("apply deterministic lane controls", async () => {
     await lane.stop();
     assert.deepEqual([aborted, disposed, released, lane.snapshot().state], [true, true, true, "stopped"]);
   }
+
+  // cancellation remains bounded even when abort never settles
+  {
+    const scheduler = new FakeScheduler();
+    let disposed = false;
+    const lane = new RoleLane({
+      role: "implementor",
+      board: { next: async () => item, observe: async () => item },
+      worker: { start: async () => ({
+        sessionId: "hung",
+        settled: new Promise(() => {}),
+        abort: async () => new Promise(() => {}),
+        dispose() { disposed = true; },
+      }) },
+      model: choice, schedule: scheduler.schedule, now: () => scheduler.now,
+      cancelTimeoutMs: 1,
+    });
+    lane.start();
+    await scheduler.runNext();
+    const stopped = await Promise.race([
+      lane.stop().then(() => true),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 50)),
+    ]);
+    assert.equal(stopped, true);
+    assert.equal(disposed, true);
+  }
 });
 
 test("stop extension resources on parent session shutdown", async () => {

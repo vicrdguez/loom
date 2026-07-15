@@ -40,6 +40,7 @@ export interface LaneOptions {
   onActivity?: (activity: WorkerActivity) => void;
   onChange?: (snapshot: LaneSnapshot) => void;
   releaseLock?: () => Promise<void>;
+  cancelTimeoutMs?: number;
 }
 
 const POLL_MS = 60_000;
@@ -50,6 +51,7 @@ export class RoleLane {
   private readonly options: LaneOptions;
   private readonly now: () => number;
   private readonly schedule: NonNullable<LaneOptions["schedule"]>;
+  private readonly cancelTimeoutMs: number;
   private state: LaneState = "stopped";
   private timer?: { cancel(): void };
   private nextPoll?: number;
@@ -72,6 +74,7 @@ export class RoleLane {
       const timer = setTimeout(run, delay);
       return { cancel: () => clearTimeout(timer) };
     });
+    this.cancelTimeoutMs = options.cancelTimeoutMs ?? 5_000;
   }
 
   start(): void {
@@ -142,8 +145,12 @@ export class RoleLane {
     this.active = undefined;
     if (run) {
       try {
-        await run.abort();
-        await settleWithin(run.settled, 5_000);
+        await settleWithin((async () => {
+          await run.abort();
+          await run.settled;
+        })().catch((error) => {
+          this.lastOutcome = `Cancellation failed: ${error instanceof Error ? error.message : String(error)}`;
+        }), this.cancelTimeoutMs);
       } finally {
         run.dispose();
       }
