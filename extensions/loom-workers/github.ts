@@ -34,6 +34,7 @@ export class GitHubBoard {
           ? "number,title,url,createdAt,state,labels,headRefName"
           : "number,title,url,createdAt,state,labels",
       ]);
+      if ((result.code ?? 0) !== 0) throw new Error(result.stderr || `gh exited ${result.code}`);
       const rows = parseRows(result.stdout);
       for (const row of rows) {
         const labels = labelNames(row.labels);

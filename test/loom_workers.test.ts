@@ -370,6 +370,16 @@ test("list all open Board Changes", async () => {
   assert.match(text, /#2 review \[loom:wip\] — u2/);
 });
 
+test("degrade when GitHub Board listing fails", async () => {
+  const board = new GitHubBoard("owner/repo", async () => ({
+    code: 1,
+    stdout: "",
+    stderr: "network down",
+  }));
+
+  await assert.rejects(board.listOpen(), /network down/);
+});
+
 test("report current Role status", () => {
   const text = formatStatus([{
     role: "implementor",
