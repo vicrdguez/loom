@@ -18,7 +18,7 @@
 - [ ] B15  Never substitute an ineligible assignment                     → behavior.md §5/4
 - [x] B16  Run implementor and reviewer concurrently                     → behavior.md §6/1
 - [x] B17  Discard context between consecutive work units                → behavior.md §6/2
-- [ ] B18  Load project policy around the bundled Role contract          → behavior.md §6/3
+- [x] B18  Load project policy around the bundled Role contract          → behavior.md §6/3
 - [ ] B19  Dispose context without cleaning repository work              → behavior.md §6/4
 - [ ] B20  Classify Board state after session settlement                 → behavior.md §7/1
 - [ ] B21  Let Board truth override session failure                      → behavior.md §7/2

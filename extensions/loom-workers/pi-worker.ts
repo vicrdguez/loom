@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import type {
   BoardItem,
   ModelChoice,
@@ -25,6 +26,51 @@ interface PiWorkerOptions {
   projectRoot: string;
   loadContract(role: Role): Promise<string>;
   createSession(options: SessionOptions): Promise<SessionLike>;
+}
+
+interface PiSdk {
+  AuthStorage: { create(): unknown };
+  ModelRegistry: { create(auth: unknown): { find(provider: string, model: string): unknown } };
+  DefaultResourceLoader: new (options: any) => { reload(): Promise<void> };
+  SessionManager: { inMemory(cwd: string): unknown };
+  getAgentDir(): string;
+  createAgentSession(options: any): Promise<{ session: any }>;
+}
+
+export function createPiSessionFactory(
+  loadSdk: () => Promise<PiSdk> = () => import("@earendil-works/pi-coding-agent") as Promise<PiSdk>,
+): (options: SessionOptions) => Promise<SessionLike> {
+  return async ({ projectRoot, model }) => {
+    const sdk = await loadSdk();
+    const authStorage = sdk.AuthStorage.create();
+    const modelRegistry = sdk.ModelRegistry.create(authStorage);
+    const selectedModel = modelRegistry.find(model.provider, model.model);
+    if (!selectedModel) throw new Error(`Pi model is no longer available: ${model.provider}/${model.model}`);
+    const resourceLoader = new sdk.DefaultResourceLoader({ cwd: projectRoot, agentDir: sdk.getAgentDir() });
+    await resourceLoader.reload();
+    const { session } = await sdk.createAgentSession({
+      cwd: projectRoot,
+      agentDir: sdk.getAgentDir(),
+      authStorage,
+      modelRegistry,
+      model: selectedModel,
+      thinkingLevel: model.thinking,
+      resourceLoader,
+      sessionManager: sdk.SessionManager.inMemory(projectRoot),
+    });
+    return {
+      id: session.sessionId,
+      messages: session.messages,
+      subscribe: (listener) => session.subscribe(listener),
+      prompt: (text) => session.prompt(text),
+      abort: () => session.abort(),
+      dispose: () => session.dispose(),
+    };
+  };
+}
+
+export async function loadBundledContract(role: Role): Promise<string> {
+  return readFile(new URL(`../../skills/loom-${role === "implementor" ? "implement" : "review"}/SKILL.md`, import.meta.url), "utf8");
 }
 
 export function buildWorkerPrompt(role: Role, item: BoardItem, contract: string): string {

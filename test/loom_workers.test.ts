@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import test from "node:test";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PiWorker } from "../extensions/loom-workers/pi-worker.ts";
+import { createPiSessionFactory, PiWorker } from "../extensions/loom-workers/pi-worker.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -125,4 +125,44 @@ test("discard context between consecutive work units", async () => {
 
   assert.notEqual(first.sessionId, second.sessionId);
   assert.deepEqual(events, ["create:session-1", "dispose:session-1", "create:session-2", "dispose:session-2"]);
+});
+
+test("load standard project policy around the bundled Role contract", async () => {
+  const calls: string[] = [];
+  let prompt = "";
+  const createSession = createPiSessionFactory(async () => ({
+    AuthStorage: { create: () => ({}) },
+    ModelRegistry: { create: () => ({ find: () => ({ id: "model" }) }) },
+    DefaultResourceLoader: class {
+      constructor(options: any) { calls.push(`loader:${options.cwd}`); }
+      async reload() { calls.push("reload"); }
+    },
+    SessionManager: { inMemory: (cwd: string) => { calls.push(`memory:${cwd}`); return {}; } },
+    getAgentDir: () => "/agent",
+    createAgentSession: async (options: any) => {
+      calls.push(`create:${options.cwd}`);
+      return { session: {
+        sessionId: "fresh",
+        messages: [],
+        subscribe() { return () => {}; },
+        async prompt(value: string) { prompt = value; },
+        async abort() {},
+        dispose() {},
+      } };
+    },
+  }));
+  const worker = new PiWorker({
+    projectRoot: "/project",
+    loadContract: async () => "BUNDLED ROLE CONTRACT",
+    createSession,
+  });
+  const run = await worker.start("reviewer", {
+    kind: "pr", number: 42, title: "change", url: "url", lifecycle: "review", claimed: false, createdAt: "now",
+  }, { provider: "provider", model: "model", thinking: "high" }, () => {});
+  await run.settled;
+
+  assert.deepEqual(calls, ["loader:/project", "reload", "memory:/project", "create:/project"]);
+  assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
+  assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);
+  assert.match(prompt, /"number":42/);
 });
