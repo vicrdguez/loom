@@ -16,8 +16,9 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
   `test/loom_workers.test.ts::degrade when GitHub Board listing fails`,
   `test/loom_workers.test.ts::exclude Claims before oldest-item selection`,
   `test/loom_workers.test.ts::prefer eligible rework over ready work` (added 2026-07-15)
-- Every exact assignment runs in a fresh in-memory Pi SDK session with standard project resources and
-  the bundled Role contract; context is disposed without cleaning repository work.
+- Every exact assignment runs in a fresh in-memory Pi SDK session with standard project resources,
+  including extension-registered models, and the bundled Role contract; context is disposed without
+  cleaning repository work.
   → `test/loom_workers.test.ts::load standard project policy around the bundled Role contract`,
   `test/loom_workers.test.ts::discard context between consecutive work units`,
   `test/loom_workers.test.ts::dispose context without cleaning repository work` (added 2026-07-15)
@@ -28,9 +29,10 @@ How Pi schedules independent implementor and reviewer Workers over Loom's GitHub
   `test/loom_workers.test.ts::retry automatically after human requeue`,
   `test/loom_workers.test.ts::pause when an observed Claim becomes orphaned` (added 2026-07-15)
 - Pause, resume, retry, stop, and parent-session shutdown preserve Role isolation while disposing
-  Worker context, timers, and locks within the cancellation bound.
+  Worker context, in-flight startup, timers, and locks within the cancellation bound.
   → `test/loom_workers.test.ts::apply deterministic lane controls`,
   `test/loom_workers.test.ts::stop does not launch after Board selection settles`,
+  `test/loom_workers.test.ts::stop cancels Worker startup before session creation finishes`,
   `test/loom_workers.test.ts::stop extension resources on parent session shutdown`,
   `test/loom_workers.test.ts::keep the other Role operational after failure` (added 2026-07-15)
 - Pi shows compact native status and only completed assistant summaries or lifecycle failures as

@@ -9,7 +9,8 @@
       select models/thinking levels, and confirm both Role lanes run concurrently with independent
       status and TUI-only Activity.
 - [ ] Select the same model for both Roles and confirm Pi warns about absent Model diversity without
-      refusing either lane. Restart Pi and confirm each Role's saved choice appears first.
+      refusing either lane. Restart Pi and confirm each Role's saved choice appears first. If a trusted
+      extension registers a provider/model, confirm that model can start a Worker too.
 - [ ] While a Worker is running, change its Board lifecycle; confirm status observes the exact object
       but waits for settlement. Requeue a claimed failure by removing only `loom:wip`; confirm a fresh
       Worker starts automatically.
@@ -20,8 +21,9 @@
 ## Notes from implementation
 `pi -e . --list-models` loaded the local package successfully without a build step. Automated Node
 coverage exercises package discovery, GitHub parsing and command failures, model preferences,
-atomic stale-lock contention, fresh session isolation, lane reconciliation/controls (including
-shutdown during Board selection), disposal, and filtered Activity; the POSIX installer suite
-continues to cover the unchanged compatibility installer. Pre-Claim retries wait 5 seconds and then
-30 seconds before pausing after the third failure. Live model calls, GitHub lifecycle timing, and TUI
-rendering remain the human-checkable residue above.
+extension-registered model discovery, atomic stale-lock contention, fresh session isolation, lane
+reconciliation/controls (including shutdown during Board selection or session creation), parent
+shutdown wiring, disposal, and filtered Activity; the POSIX installer suite continues to cover the
+unchanged compatibility installer. Pre-Claim retries wait 5 seconds and then 30 seconds before
+pausing after the third failure. Live model calls, GitHub lifecycle timing, and TUI rendering remain
+the human-checkable residue above.
