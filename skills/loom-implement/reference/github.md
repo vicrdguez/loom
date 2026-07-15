@@ -60,11 +60,12 @@ Run \`/loom-implement\` to claim and build it."
 
 ## Claim work
 
-**A ready issue (loom-implement):** the oldest open `loom:ready` issue is next.
+**A ready issue (loom-implement):** the oldest open `loom:ready` issue without `loom:wip` is next.
 
 ```sh
 gh issue list --repo "<owner>/<repo>" --label "loom:ready" --state open \
-  --json number,title --jq 'sort_by(.number) | .[0]'
+  --search "-label:loom:wip sort:created-asc" --limit 1 \
+  --json number,title --jq '.[0]'
 ```
 
 The issue title is the `<slug>`; check out its branch (`git fetch origin <slug> && git checkout <slug>`).
@@ -76,11 +77,12 @@ gh pr list --repo "<owner>/<repo>" --label "loom:review" --state open \
   --json number,headRefName,title --jq 'sort_by(.number) | .[0]'
 ```
 
-**A rework PR (loom-implement):** a `loom:rework` PR is a bounce to pick back up.
+**A rework PR (loom-implement):** the oldest `loom:rework` PR without `loom:wip` is a bounce to pick back up.
 
 ```sh
 gh pr list --repo "<owner>/<repo>" --label "loom:rework" --state open \
-  --json number,headRefName,title --jq 'sort_by(.number) | .[0]'
+  --search "-label:loom:wip sort:created-asc" --limit 1 \
+  --json number,headRefName,title --jq '.[0]'
 ```
 
 ## Open the review PR and close the issue (loom-implement)

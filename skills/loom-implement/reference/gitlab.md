@@ -37,10 +37,15 @@ glab issue create --title "<slug>" --label "loom:ready" \
 ## Claim work
 
 ```sh
-glab issue list --label "loom:ready" --output json    # implementor: lowest iid is next
+glab issue list --label "loom:ready" --not-label "loom:wip" \
+  --order created_at --sort asc --per-page 1 --output json
 glab mr    list --label "loom:review" --output json    # reviewer
-glab mr    list --label "loom:rework" --output json    # rework bounce (check out its source branch)
+glab mr    list --label "loom:rework" --not-label "loom:wip" \
+  --order created_at --sort asc --per-page 1 --output json
 ```
+
+The forge excludes `loom:wip` before applying the one-item limit, so claimed older work cannot hide
+a later eligible item.
 
 ## Open the review MR and close the issue (loom-implement)
 
