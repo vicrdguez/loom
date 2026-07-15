@@ -200,10 +200,14 @@ test("load standard project policy around the bundled Role contract", async () =
   const session = {
     sessionId: "fresh",
     messages: [],
+    extensionRunner: {
+      async emit(event: any) { calls.push(`emit:${event.type}:${event.reason}`); },
+    },
+    async bindExtensions() { calls.push("bind"); },
     subscribe() { return () => {}; },
     async prompt(value: string) { prompt = value; },
     async abort() {},
-    dispose() {},
+    dispose() { calls.push("dispose"); },
   };
   const createSession = createPiSessionFactory(async () => ({
     SessionManager: { inMemory: (cwd: string) => { calls.push(`memory:${cwd}`); return {}; } },
@@ -234,6 +238,9 @@ test("load standard project policy around the bundled Role contract", async () =
     "find:extension-provider/extension-model",
     "memory:/project",
     "create:true",
+    "bind",
+    "emit:session_shutdown:quit",
+    "dispose",
   ]);
   assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
   assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);

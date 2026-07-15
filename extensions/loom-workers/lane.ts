@@ -165,7 +165,7 @@ export class RoleLane {
           this.lastOutcome = `Cancellation failed: ${error instanceof Error ? error.message : String(error)}`;
         }), this.cancelTimeoutMs);
       } finally {
-        run.dispose();
+        await run.dispose();
       }
     }
     this.current = undefined;
@@ -220,7 +220,7 @@ export class RoleLane {
         try {
           await settleWithin(run.abort().catch(() => {}), this.cancelTimeoutMs);
         } finally {
-          run.dispose();
+          await run.dispose();
         }
         return;
       }

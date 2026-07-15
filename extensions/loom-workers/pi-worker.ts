@@ -13,7 +13,7 @@ interface SessionLike {
   subscribe(listener: (event: any) => void): () => void;
   prompt(text: string): Promise<void>;
   abort(): Promise<void>;
-  dispose(): void;
+  dispose(): Promise<void> | void;
 }
 
 interface SessionOptions {
@@ -53,13 +53,29 @@ export function createPiSessionFactory(
       thinkingLevel: model.thinking,
       sessionManager: sdk.SessionManager.inMemory(projectRoot),
     });
+    let disposal: Promise<void> | undefined;
+    const dispose = () => disposal ??= (async () => {
+      try {
+        await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
+      } finally {
+        session.dispose();
+      }
+    })();
+    try {
+      signal?.throwIfAborted();
+      await session.bindExtensions({});
+      signal?.throwIfAborted();
+    } catch (error) {
+      await dispose();
+      throw error;
+    }
     return {
       id: session.sessionId,
       messages: session.messages,
       subscribe: (listener) => session.subscribe(listener),
       prompt: (text) => session.prompt(text),
       abort: () => session.abort(),
-      dispose: () => session.dispose(),
+      dispose,
     };
   };
 }
@@ -91,22 +107,20 @@ export class PiWorker {
     signal?.throwIfAborted();
     const session = await this.options.createSession({ role, projectRoot: this.options.projectRoot, model, signal });
     if (signal?.aborted) {
-      session.dispose();
+      await session.dispose();
       signal.throwIfAborted();
     }
     if (session.messages.length !== 0) {
-      session.dispose();
+      await session.dispose();
       throw new Error("Worker session must start with empty message history");
     }
 
     const unsubscribe = session.subscribe((event) => emitActivity(role, event, onActivity));
-    let disposed = false;
-    const dispose = () => {
-      if (disposed) return;
-      disposed = true;
+    let disposal: Promise<void> | undefined;
+    const dispose = () => disposal ??= (async () => {
       unsubscribe();
-      session.dispose();
-    };
+      await session.dispose();
+    })();
     const settled = (async () => {
       try {
         await session.prompt(buildWorkerPrompt(role, item, contract));
@@ -116,7 +130,7 @@ export class PiWorker {
         onActivity({ role, kind: "failure", text });
         return { ok: false, error: text };
       } finally {
-        dispose();
+        await dispose();
       }
     })();
 

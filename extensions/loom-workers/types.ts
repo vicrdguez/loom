@@ -35,5 +35,5 @@ export interface WorkerRun {
   sessionId: string;
   settled: Promise<WorkerOutcome>;
   abort(): Promise<void>;
-  dispose(): void;
+  dispose(): Promise<void> | void;
 }
