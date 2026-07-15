@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import test from "node:test";
 import { dirname, join, resolve } from "node:path";
@@ -9,6 +9,7 @@ import { acquireRoleLock } from "../extensions/loom-workers/local-state.ts";
 import { GitHubBoard } from "../extensions/loom-workers/github.ts";
 import { RoleLane } from "../extensions/loom-workers/lane.ts";
 import { Coordinator, formatStatus } from "../extensions/loom-workers/coordinator.ts";
+import { gateStartup } from "../extensions/loom-workers/project.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -199,6 +200,43 @@ test("load standard project policy around the bundled Role contract", async () =
   assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
   assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);
   assert.match(prompt, /"number":42/);
+});
+
+test("refuse unsafe or unsupported startup", async () => {
+  const initialized = await mkdtemp(join(tmpdir(), "loom-gate-project-"));
+  const uninitialized = await mkdtemp(join(tmpdir(), "loom-gate-empty-"));
+  await mkdir(join(initialized, "docs/loom"), { recursive: true });
+  await writeFile(join(initialized, "docs/loom/project.md"), "## Forge\n- **Host:** github\n- **Repo:** owner/repo\n");
+  const base = {
+    mode: "tui",
+    trusted: true,
+    cwd: initialized,
+    availableModels: [{}],
+    runGh: async () => ({ code: 0, stdout: "", stderr: "" }),
+  };
+
+  try {
+    const cases = [
+      [{ ...base, mode: "print" }, /interactive only/],
+      [{ ...base, trusted: false }, /\/trust.*restart Pi/],
+      [{ ...base, cwd: uninitialized }, /\/skill:loom-init/],
+      [{ ...base, overrideHost: "gitlab" }, /only GitHub/i],
+      [{ ...base, runGh: async () => ({ code: 1, stdout: "", stderr: "not logged in" }) }, /install.*authenticate `gh`/i],
+      [{ ...base, availableModels: [] }, /configure a Pi model/i],
+    ] as const;
+    for (const [input, remedy] of cases) {
+      if ("overrideHost" in input) {
+        await writeFile(join(initialized, "docs/loom/project.md"), "## Forge\n- **Host:** gitlab\n- **Repo:** owner/repo\n");
+      }
+      const result = await gateStartup(input as any);
+      assert.equal(result.ok, false);
+      assert.match(result.remedy ?? "", remedy);
+      await writeFile(join(initialized, "docs/loom/project.md"), "## Forge\n- **Host:** github\n- **Repo:** owner/repo\n");
+    }
+  } finally {
+    await rm(initialized, { recursive: true, force: true });
+    await rm(uninitialized, { recursive: true, force: true });
+  }
 });
 
 test("start available Roles independently", async () => {
