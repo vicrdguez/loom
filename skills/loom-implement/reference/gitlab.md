@@ -47,6 +47,23 @@ glab mr    list --label "loom:rework" --not-label "loom:wip" \
 The forge excludes `loom:wip` before applying the one-item limit, so claimed older work cannot hide
 a later eligible item.
 
+## Claim and requeue implementor work
+
+Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless the
+command succeeds:
+
+```sh
+glab issue update <issue-iid> --label "loom:wip"
+glab mr update <mr-iid> --label "loom:wip"
+```
+
+Failed or interrupted work stays claimed. A human requeues it by removing only `loom:wip`:
+
+```sh
+glab issue update <issue-iid> --unlabel "loom:wip"
+glab mr update <mr-iid> --unlabel "loom:wip"
+```
+
 ## Open the review MR and close the issue (loom-implement)
 
 Create the MR (loom-submit's gitlab reference), labeling it, then close the issue:
@@ -55,6 +72,7 @@ Create the MR (loom-submit's gitlab reference), labeling it, then close the issu
 glab mr create --source-branch "<slug>" --target-branch main \
   --title "<title>" --description "$(cat body.md)" --label "loom:review"
 glab issue close <issue-iid>
+glab issue update <issue-iid> --unlabel "loom:wip"
 ```
 
 ## Swap labels (rework ↔ review; review → done)
@@ -62,8 +80,8 @@ glab issue close <issue-iid>
 ```sh
 # reviewer bounces:  review → rework
 glab mr update <iid> --unlabel "loom:review" --label "loom:rework"
-# implementor re-presents:  rework → review
-glab mr update <iid> --unlabel "loom:rework" --label "loom:review"
+# implementor re-presents:  rework + wip → review
+glab mr update <iid> --unlabel "loom:rework,loom:wip" --label "loom:review"
 # reviewer passes:  review → done
 glab mr update <iid> --unlabel "loom:review" --label "loom:done"
 ```

@@ -31,6 +31,17 @@ prioritize the blocking item(s).
 - **A `loom:rework` PR** — a change you (or another implementor) already built, bounced back by the
   reviewer with feedback as PR comments. Check out its head branch and read the comments first.
 
+An object carrying `loom:wip` is already claimed and must be skipped. After selecting one eligible
+object, add `loom:wip` **without removing** its `loom:ready` or `loom:rework` lifecycle label. The
+Claim exists only after that forge operation succeeds. If it fails or its outcome is ambiguous,
+report the failure and exit without fetching the branch, creating a worktree, or touching the Change.
+This is an advisory Claim, not an atomic ownership lock: two workers that select the same object
+before either Claim is visible can still race.
+
+If implementation fails or is interrupted, leave `loom:wip` in place as durable progress evidence.
+A human requeues the object explicitly by removing only `loom:wip`; workers never auto-expire or
+silently release a Claim.
+
 Process **one** change, then exit. Do not loop over the board yourself — re-firing with a fresh
 context is the scheduler's job, and it is what keeps each change on a clean context boundary.
 
@@ -59,8 +70,12 @@ Once the build is committed on the branch:
 2. **Open a PR labeled `loom:review`** — the PR body is `acceptance.md` (the human-checkable residue),
    the same body `loom-submit` would use. Use loom-submit's per-forge reference for the raw PR-create
    command; add the `loom:review` label from the board reference.
-3. **Close the change issue on first PR open**, so exactly one board object stays active per change
-   (the open PR). Reference the PR from the close comment.
+3. **Close the change issue on first PR open**, while it still carries `loom:ready + loom:wip`, so
+   exactly one board object stays active per change (the open PR). Reference the PR from the close
+   comment. Only after the issue is closed, remove `loom:wip` from it.
+
+If any handoff operation fails, inspect and report the exact incomplete Board state. Do not present
+success or select another Change unless reviewer eligibility and Claim cleanup are both observable.
 
 You are **presenting**, not blessing: open the PR as a normal (ready) PR for the reviewer to judge —
 do not run verify, do not archive, do not mark it `loom:done`.
@@ -72,7 +87,7 @@ When you claimed a `loom:rework` PR instead of a fresh issue:
 1. Read the reviewer's findings from the PR comments.
 2. Rework the change **on the same branch** by using `loom-apply` again.
 3. Push **additional commits to the same PR** — never open a second PR for the same change.
-4. **Flip the label `loom:rework` → `loom:review`** to hand it back to the reviewer.
+4. **Flip the labels `loom:rework + loom:wip` → `loom:review`** to hand it back to the reviewer.
 
 ## What this skill never doeks
 

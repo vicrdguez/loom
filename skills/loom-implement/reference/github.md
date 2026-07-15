@@ -85,16 +85,34 @@ gh pr list --repo "<owner>/<repo>" --label "loom:rework" --state open \
   --json number,headRefName,title --jq '.[0]'
 ```
 
+## Claim and requeue implementor work
+
+Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless the
+command succeeds:
+
+```sh
+gh issue edit <issue-number> --repo "<owner>/<repo>" --add-label "loom:wip" # ready issue
+gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"       # rework PR
+```
+
+Failed or interrupted work stays claimed. A human requeues it by removing only `loom:wip`:
+
+```sh
+gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"
+gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:wip"
+```
+
 ## Open the review PR and close the issue (loom-implement)
 
-Open the PR with `loom:review` (PR create commands: loom-submit's github reference), then close the
-change issue so exactly one board object stays active:
+Open the review PR, close the ready issue, and only then remove its Claim so exactly one board object
+stays active:
 
 ```sh
 gh pr create --repo "<owner>/<repo>" --label "loom:review" \
   --title "<title>" --body-file body.md --base main --head "<slug>"
 gh issue close <issue-number> --repo "<owner>/<repo>" \
   --comment "Built and opened for review in #<pr-number>."
+gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"
 ```
 
 ## Swap labels (loom-implement rework → review; loom-review pass/fail)
@@ -104,8 +122,9 @@ A PR carries exactly one lifecycle label at a time. Remove the old, add the new:
 ```sh
 # reviewer bounces:  review → rework
 gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review" --add-label "loom:rework"
-# implementor re-presents after rework:  rework → review
-gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:rework" --add-label "loom:review"
+# implementor re-presents after rework:  rework + wip → review
+gh pr edit <pr-number> --repo "<owner>/<repo>" \
+  --remove-label "loom:rework,loom:wip" --add-label "loom:review"
 # reviewer passes:  review → done
 gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review" --add-label "loom:done"
 ```

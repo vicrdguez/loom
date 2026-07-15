@@ -62,6 +62,18 @@ assert_not_contains() {
   fi
 }
 
+assert_order() {
+  file=$1
+  shift
+  previous=0
+  for text in "$@"; do
+    line=$(grep -nF -- "$text" "$file" | head -1 | cut -d: -f1)
+    [ -n "$line" ] || { fail "expected $file to contain: $text"; return; }
+    [ "$line" -gt "$previous" ] || { fail "expected $text after the previous marker in $file"; return; }
+    previous=$line
+  done
+}
+
 run_cmd() {
   CURRENT_OUT="$TMP_ROOT/out.$$"
   set +e
@@ -274,6 +286,74 @@ test_prefer_eligible_rework_over_ready_work() {
   implement=$(board_file loom-implement/SKILL.md)
   assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
   assert_contains "$implement" 'before starting an eligible `loom:ready` issue'
+}
+
+test_add_advisory_claim_without_replacing_lifecycle() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'add `loom:wip` **without removing** its `loom:ready` or'
+  for forge in github gitlab codeberg; do
+    assert_contains "$(board_file "loom-implement/reference/$forge.md")" 'Add `loom:wip` without removing the lifecycle label'
+  done
+}
+
+test_fail_closed_when_claim_is_unsuccessful_or_ambiguous() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'only after that forge operation succeeds'
+  assert_contains "$implement" 'fails or its outcome is ambiguous'
+  assert_contains "$implement" 'without fetching the branch, creating a worktree, or touching the Change'
+}
+
+test_retain_an_interrupted_claim() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'fails or is interrupted, leave `loom:wip` in place'
+  assert_contains "$implement" 'workers never auto-expire or'
+  assert_contains "$implement" 'silently release a Claim'
+}
+
+test_human_requeues_interrupted_implementation() {
+  for forge in github gitlab codeberg; do
+    file=$(board_file "loom-implement/reference/$forge.md")
+    assert_contains "$file" 'human requeues'
+    assert_contains "$file" 'removing only `loom:wip`'
+  done
+}
+
+test_release_ready_claim_after_opening_review() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'Only after the issue is closed, remove `loom:wip`'
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" 'Open the review PR, close the ready issue, and only then remove its Claim'
+}
+
+test_release_rework_claim_by_handing_to_review() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" '`loom:rework + loom:wip` → `loom:review`'
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" '--remove-label "loom:rework,loom:wip" --add-label "loom:review"'
+}
+
+test_report_partial_handoff_as_incomplete() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'If any handoff operation fails'
+  assert_contains "$implement" 'report the exact incomplete Board state'
+  assert_contains "$implement" 'Do not present'
+  assert_contains "$implement" 'success or select another Change'
+}
+
+test_codeberg_uses_numeric_label_ids() {
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'resolve_label_id'
+  assert_contains "$codeberg" '-d "{\"labels\":[$wip_id]}"'
+  assert_contains "$codeberg" '-d "{\"labels\":[$review_id]}"'
+  assert_contains "$codeberg" '/labels/$wip_id'
+  assert_not_contains "$codeberg" "-d '{\"labels\":[\"loom:wip\"]}'"
+}
+
+test_explain_remaining_simultaneous_selection_race() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'advisory Claim, not an atomic ownership lock'
+  assert_contains "$implement" 'two workers that select the same object'
+  assert_contains "$implement" 'before either Claim is visible can still race'
 }
 
 test_checkout_install_includes_architecture_review_skill() {
@@ -684,6 +764,24 @@ run_test "Filter Claims before selecting one item" \
   test_filter_claims_before_selecting_one_item
 run_test "Prefer eligible rework over eligible ready work" \
   test_prefer_eligible_rework_over_ready_work
+run_test "Add an advisory Claim without replacing lifecycle" \
+  test_add_advisory_claim_without_replacing_lifecycle
+run_test "Fail closed when Claim outcome is unsuccessful or ambiguous" \
+  test_fail_closed_when_claim_is_unsuccessful_or_ambiguous
+run_test "Retain an interrupted Claim" \
+  test_retain_an_interrupted_claim
+run_test "Human requeues interrupted implementation" \
+  test_human_requeues_interrupted_implementation
+run_test "Release a ready-issue Claim after opening review" \
+  test_release_ready_claim_after_opening_review
+run_test "Release a rework Claim by handing the PR to review" \
+  test_release_rework_claim_by_handing_to_review
+run_test "Report a partial handoff as incomplete" \
+  test_report_partial_handoff_as_incomplete
+run_test "Resolve Codeberg label names to numeric IDs" \
+  test_codeberg_uses_numeric_label_ids
+run_test "Explain the remaining simultaneous-selection race" \
+  test_explain_remaining_simultaneous_selection_race
 run_test "Checkout install includes the architecture review skill" \
   test_checkout_install_includes_architecture_review_skill
 run_test "Install the latest non-prerelease release" \

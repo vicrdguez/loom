@@ -53,6 +53,36 @@ For implementor lists, first discard every row whose labels contain `loom:wip`, 
 lowest remaining index. Filtering must happen before selection so a claimed older object cannot hide
 a later eligible item. An issue title is its `<slug>`; check out the PR's head branch to rework.
 
+## Claim and requeue implementor work
+
+Forgejo mutations require numeric repository label IDs. Resolve names from the label list once:
+
+```sh
+labels=$(curl -fsSL -H "Authorization: token $FORGEJO_TOKEN" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/labels")
+resolve_label_id() {
+  printf '%s' "$labels" | jq -er --arg name "$1" '.[] | select(.name == $name) | .id'
+}
+wip_id=$(resolve_label_id loom:wip)
+review_id=$(resolve_label_id loom:review)
+```
+
+Add `loom:wip` without removing the lifecycle label. Do not fetch or touch the Change unless this
+succeeds:
+
+```sh
+curl -fsSL -X POST -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<issue-or-pr-index>/labels" \
+  -d "{\"labels\":[$wip_id]}"
+```
+
+Failed or interrupted work stays claimed. A human requeues it by removing only `loom:wip`:
+
+```sh
+curl -fsSL -X DELETE -H "Authorization: token $FORGEJO_TOKEN" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<issue-or-pr-index>/labels/$wip_id"
+```
+
 ## Open the review PR and close the issue (loom-implement)
 
 Create the PR (loom-submit's codeberg reference), then label it and close the issue:
@@ -61,18 +91,23 @@ Create the PR (loom-submit's codeberg reference), then label it and close the is
 tea pr create --head "<slug>" --base main --title "<title>" --description "$(cat body.md)"
 tea issue edit <index> --add-labels "loom:review"        # if the PR create didn't take labels
 tea issue close <issue-index>
+curl -fsSL -X DELETE -H "Authorization: token $FORGEJO_TOKEN" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<issue-index>/labels/$wip_id"
 ```
 
-## Swap labels (rework ↔ review; review → done)
+## Swap labels (rework + wip → review; review → rework/done)
+
+Replace the PR labels with the numeric target label ID. For implementor re-presentation this removes
+`loom:rework + loom:wip` and adds `loom:review` in one operation:
 
 ```sh
-curl -fsSL -X PATCH -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
+curl -fsSL -X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
   "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<pr-index>/labels" \
-  -d '{"labels":["loom:review"]}'   # replaces the PR's labels wholesale — set the single target label
+  -d "{\"labels\":[$review_id]}"
 ```
 
-Set `["loom:rework"]` to bounce, `["loom:done"]` to pass. (Forgejo PRs share the issue label
-endpoint; the PR index is its issue index.)
+Resolve and send the numeric `loom:rework` or `loom:done` ID for reviewer transitions. Forgejo PRs
+share the issue label endpoint; the PR index is its issue index.
 
 ## Feedback as PR comments (loom-review)
 
