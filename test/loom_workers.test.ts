@@ -5,6 +5,7 @@ import test from "node:test";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPiSessionFactory, PiWorker } from "../extensions/loom-workers/pi-worker.ts";
+import { acquireRoleLock } from "../extensions/loom-workers/local-state.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -165,6 +166,30 @@ test("load standard project policy around the bundled Role contract", async () =
   assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
   assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);
   assert.match(prompt, /"number":42/);
+});
+
+test("recover a stale Role lock", async () => {
+  const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
+  const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));
+
+  try {
+    const stale = await acquireRoleLock(project, "implementor", {
+      agentDir, pid: 111, isAlive: () => false,
+    });
+    const recovered = await acquireRoleLock(project, "implementor", {
+      agentDir, pid: 222, isAlive: () => false,
+    });
+    assert.equal(recovered.owner.pid, 222);
+    await stale.release();
+    await assert.rejects(
+      acquireRoleLock(project, "implementor", { agentDir, pid: 333, isAlive: () => true }),
+      /owned by process 222/,
+    );
+    await recovered.release();
+  } finally {
+    await rm(project, { recursive: true, force: true });
+    await rm(agentDir, { recursive: true, force: true });
+  }
 });
 
 test("dispose context without cleaning repository work", async () => {
