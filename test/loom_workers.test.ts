@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import test from "node:test";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PiWorker } from "../extensions/loom-workers/pi-worker.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -33,6 +34,12 @@ test("discover the extension and every Loom skill", async () => {
   assert.equal(manifest.devDependencies, undefined);
 });
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
 test("leave projects unchanged on package installation", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-package-"));
   let command: ((args: string, ctx: any) => Promise<void>) | undefined;
@@ -51,4 +58,37 @@ test("leave projects unchanged on package installation", async () => {
   } finally {
     await rm(project, { recursive: true, force: true });
   }
+});
+
+test("run implementor and reviewer concurrently", async () => {
+  const prompts = [deferred<void>(), deferred<void>()];
+  const created: string[] = [];
+  const worker = new PiWorker({
+    projectRoot: root,
+    loadContract: async (role) => `${role} contract`,
+    createSession: async ({ role }) => {
+      created.push(role);
+      const current = prompts[created.length - 1];
+      return {
+        id: `${role}-session`,
+        messages: [],
+        subscribe() { return () => {}; },
+        prompt: () => current.promise,
+        abort: async () => {},
+        dispose() {},
+      };
+    },
+  });
+
+  const implementor = await worker.start("implementor", {
+    kind: "issue", number: 1, title: "one", url: "one", lifecycle: "ready", claimed: false, createdAt: "1",
+  }, { provider: "p", model: "m", thinking: "off" }, () => {});
+  const reviewer = await worker.start("reviewer", {
+    kind: "pr", number: 2, title: "two", url: "two", lifecycle: "review", claimed: false, createdAt: "2",
+  }, { provider: "p", model: "m", thinking: "off" }, () => {});
+
+  assert.deepEqual(created, ["implementor", "reviewer"]);
+  prompts[0].resolve();
+  prompts[1].resolve();
+  await Promise.all([implementor.settled, reviewer.settled]);
 });
