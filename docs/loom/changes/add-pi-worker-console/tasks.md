@@ -5,7 +5,7 @@
 - [x] B2   Leave projects unchanged on package installation              → behavior.md §1/2
 - [ ] B3   Prefer native installs without changing legacy installer      → behavior.md §1/3
 - [x] B4   Refuse unsafe or unsupported startup                          → behavior.md §2/1
-- [ ] B5   Select and remember a Role model natively                     → behavior.md §3/1
+- [x] B5   Select and remember a Role model natively                     → behavior.md §3/1
 - [x] B6   Allow matching Role models with a warning                     → behavior.md §3/2
 - [x] B7   Start available Roles independently                           → behavior.md §3/3
 - [x] B8   Recover a stale Role lock                                     → behavior.md §3/4

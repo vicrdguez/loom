@@ -5,7 +5,8 @@ import test from "node:test";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPiSessionFactory, PiWorker } from "../extensions/loom-workers/pi-worker.ts";
-import { acquireRoleLock } from "../extensions/loom-workers/local-state.ts";
+import { acquireRoleLock, loadChoice, saveChoice } from "../extensions/loom-workers/local-state.ts";
+import { selectModelChoice } from "../extensions/loom-workers/models.ts";
 import { GitHubBoard } from "../extensions/loom-workers/github.ts";
 import { RoleLane } from "../extensions/loom-workers/lane.ts";
 import { Coordinator, formatStatus } from "../extensions/loom-workers/coordinator.ts";
@@ -236,6 +237,35 @@ test("refuse unsafe or unsupported startup", async () => {
   } finally {
     await rm(initialized, { recursive: true, force: true });
     await rm(uninitialized, { recursive: true, force: true });
+  }
+});
+
+test("select and remember a Role model natively", async () => {
+  const project = await mkdtemp(join(tmpdir(), "loom-choice-project-"));
+  const agentDir = await mkdtemp(join(tmpdir(), "loom-choice-agent-"));
+  const saved = { provider: "beta", model: "two", thinking: "high" as const };
+  await saveChoice(project, "implementor", saved, agentDir);
+  const selections: Array<{ title: string; options: string[] }> = [];
+  const ui = {
+    select: async (title: string, options: string[]) => {
+      selections.push({ title, options });
+      return options[0];
+    },
+  };
+
+  try {
+    const choice = await selectModelChoice("implementor", [
+      { provider: "alpha", id: "one", reasoning: false },
+      { provider: "beta", id: "two", reasoning: true },
+    ], await loadChoice(project, "implementor", agentDir), ui);
+    assert.deepEqual(choice, saved);
+    assert.equal(selections[0].options[0], "beta/two");
+    assert.equal(selections[1].options[0], "high");
+    assert.match(selections[0].title, /implementor model/i);
+    assert.match(selections[1].title, /thinking/i);
+  } finally {
+    await rm(project, { recursive: true, force: true });
+    await rm(agentDir, { recursive: true, force: true });
   }
 });
 
