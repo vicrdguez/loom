@@ -1,7 +1,7 @@
 # Tasks — add-pi-worker-console
 
 ## Behavioral
-- [ ] B1   Discover the extension and every Loom skill                    → behavior.md §1/1
+- [x] B1   Discover the extension and every Loom skill                    → behavior.md §1/1
 - [ ] B2   Leave projects unchanged on package installation              → behavior.md §1/2
 - [ ] B3   Prefer native installs without changing legacy installer      → behavior.md §1/3
 - [ ] B4   Refuse unsafe or unsupported startup                          → behavior.md §2/1
