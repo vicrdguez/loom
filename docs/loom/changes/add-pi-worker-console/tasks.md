@@ -33,11 +33,11 @@
 - [x] B30  Keep Worker narration out of parent model context             → behavior.md §9/1
 
 ## Chores
-- [ ] C1  Rebase after `add-reviewer-wip-claims` lands and verify symmetric Claims are present
-- [ ] C2  Add root Pi package metadata, peer dependencies, and Node test command
-- [ ] C3  Add TypeScript extension modules without a build or runtime dependency
+- [x] C1  Rebase after `add-reviewer-wip-claims` lands and verify symmetric Claims are present
+- [x] C2  Add root Pi package metadata, peer dependencies, and Node test command
+- [x] C3  Add TypeScript extension modules without a build or runtime dependency
 - [x] C4  Add exact-assignment support to `loom-implement` and `loom-review`
-- [ ] C5  Preserve all existing POSIX installer tests and behavior
+- [x] C5  Preserve all existing POSIX installer tests and behavior
 - [ ] C6  Record live Pi/GitHub and local Git-package acceptance checks
 
 ## Docs
