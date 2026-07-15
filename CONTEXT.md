@@ -8,7 +8,7 @@ multiple coding harnesses.
 ### Distribution
 
 **Harness**:
-A coding agent environment that can load Loom skills. Claude Code, Codex CLI, and OpenCode are
+A coding agent environment that can load Loom skills. Claude Code, Codex CLI, OpenCode, and Pi are
 the supported harnesses.
 _Avoid_: Tool, client
 
@@ -23,14 +23,23 @@ instead of a target project's harness directories.
 _Avoid_: User install
 
 **Remote install**:
-A copy-paste install started from a hosted installer script without requiring the user to clone Loom
-first.
+The deprecated compatibility install started from a hosted installer script without requiring the
+user to clone Loom first.
 _Avoid_: Curl install, bash install
 
 **Release archive**:
 A versioned source snapshot used by a remote install. It is the payload that provides the skills,
 templates, and installer files for a specific Loom release.
 _Avoid_: Clone, checkout
+
+**Harness-native install**:
+A Loom install managed by a Harness's own package mechanism. It is the preferred distribution path
+when the Harness provides one.
+_Avoid_: Installer script, universal installer
+
+**Pi package**:
+The Harness-native Loom distribution for Pi. It provides Loom's skills and Worker console together.
+_Avoid_: Plugin, extension package
 
 ### Workflow
 
@@ -101,18 +110,13 @@ verifies, archives, or blesses it — a different role does.
 _Avoid_: Persona, agent
 
 **Worker**:
-A single-model agent that fills one role by processing exactly one change per invocation and then
-exiting; a scheduler re-fires it with a fresh context, with the Worker console providing Loom's
-first-party scheduler. Exists only in the Board topology.
+A single-model agent that fills one Role by processing exactly one Change per invocation. The
+invocation then ends and its context is discarded; the Worker console schedules another fresh
+invocation when more work is eligible. Exists only in the Board topology.
 _Avoid_: Daemon, bot, agent
 
-**Worker specification**:
-The Worker console's Harness-neutral description of how to create a Worker for one Role. A Harness
-translates it for execution but remains responsible for authentication and credentials.
-_Avoid_: Profile, command template
-
 **Worker console**:
-The human-operated Loom runtime that supervises Board-topology Worker invocations while presenting
+The human-operated scheduler that supervises Board-topology Worker invocations while presenting
 each Role separately. It coordinates Workers but never fills a Role or crosses the trust boundary.
 _Avoid_: Orchestrator, command center
 
@@ -122,9 +126,8 @@ invocations. It has at most one active Worker and remains visible while idle or 
 _Avoid_: Worker pane, process pane
 
 **Progress evidence**:
-Durable, externally observable state the Worker console uses to report advancement, including
-Worker lifecycle, Board state, completed Change tasks, and slice commits. Worker narration is not
-Progress evidence.
+Externally observable state the Worker console uses to report advancement, including Worker
+lifecycle and Board state. Worker narration is not Progress evidence.
 _Avoid_: Progress log, model-reported progress
 
 **Activity message**:
@@ -145,9 +148,9 @@ lifecycle; `loom:wip` is an additive Claim marker.
 _Avoid_: Queue, tracker
 
 **Claim**:
-Durable Board evidence that an implementor has taken responsibility for a Change issue or rework PR.
-It combines `loom:wip` with the object's existing `loom:ready` or `loom:rework` lifecycle label and
-remains until successful handoff or explicit human requeue.
+Durable Board evidence that a Worker has taken responsibility for one eligible Board object. It
+combines `loom:wip` with the object's existing `loom:ready`, `loom:rework`, or `loom:review`
+lifecycle label and remains until successful handoff or explicit human requeue.
 _Avoid_: Lock, lease, assignment
 
 **Change issue**:

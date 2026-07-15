@@ -1,5 +1,7 @@
 # Worker Console Uses Elixir/OTP and ExRatatui
 
+**Status:** Superseded by ADR-0008.
+
 The Worker console will be an Elixir/OTP application using ExRatatui for its full-screen terminal
 interface and distributed as target-specific standard Mix releases that include ERTS. Each release
 publishes dedicated platform artifacts containing the public `loom` executable, separate from the
