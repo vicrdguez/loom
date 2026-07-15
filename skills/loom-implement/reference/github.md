@@ -70,11 +70,12 @@ gh issue list --repo "<owner>/<repo>" --label "loom:ready" --state open \
 
 The issue title is the `<slug>`; check out its branch (`git fetch origin <slug> && git checkout <slug>`).
 
-**A review PR (loom-review):** the oldest open `loom:review` PR is next.
+**A review PR (loom-review):** the oldest open `loom:review` PR without `loom:wip` is next.
 
 ```sh
 gh pr list --repo "<owner>/<repo>" --label "loom:review" --state open \
-  --json number,headRefName,title --jq 'sort_by(.number) | .[0]'
+  --search "-label:loom:wip sort:created-asc" --limit 1 \
+  --json number,headRefName,title --jq '.[0]'
 ```
 
 **A rework PR (loom-implement):** the oldest `loom:rework` PR without `loom:wip` is a bounce to pick back up.

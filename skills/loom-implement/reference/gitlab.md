@@ -39,7 +39,8 @@ glab issue create --title "<slug>" --label "loom:ready" \
 ```sh
 glab issue list --label "loom:ready" --not-label "loom:wip" \
   --order created_at --sort asc --per-page 1 --output json
-glab mr    list --label "loom:review" --output json    # reviewer
+glab mr    list --label "loom:review" --not-label "loom:wip" \
+  --order created_at --sort asc --per-page 1 --output json # reviewer
 glab mr    list --label "loom:rework" --not-label "loom:wip" \
   --order created_at --sort asc --per-page 1 --output json
 ```

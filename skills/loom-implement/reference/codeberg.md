@@ -50,7 +50,7 @@ tea pr    list --labels "loom:review" --state open --fields index,title,head --o
 tea pr    list --labels "loom:rework" --state open --fields index,title,head,labels --output simple
 ```
 
-For implementor lists, first discard every row whose labels contain `loom:wip`, then choose the
+For reviewer and implementor lists, first discard every row whose labels contain `loom:wip`, then choose the
 lowest remaining index. Filtering must happen before selection so a claimed older object cannot hide
 a later eligible item. An issue title is its `<slug>`; check out the PR's head branch to rework.
 
