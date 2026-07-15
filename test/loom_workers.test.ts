@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import test from "node:test";
+import { Worker } from "node:worker_threads";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPiSessionFactory, loadBundledContract, PiWorker } from "../extensions/loom-workers/pi-worker.ts";
@@ -1014,6 +1015,66 @@ test("recover a stale Role lock", async () => {
     );
     await recovered.release();
   } finally {
+    await rm(project, { recursive: true, force: true });
+    await rm(agentDir, { recursive: true, force: true });
+  }
+});
+
+test("recover a stale Role lock atomically under contention", async () => {
+  const project = await mkdtemp(join(tmpdir(), "loom-racing-lock-project-"));
+  const agentDir = await mkdtemp(join(tmpdir(), "loom-racing-lock-agent-"));
+  const gate = new Int32Array(new SharedArrayBuffer(3 * Int32Array.BYTES_PER_ELEMENT));
+  const localStateUrl = new URL("../extensions/loom-workers/local-state.ts", import.meta.url).href;
+  const worker = new Worker(new URL(`data:text/javascript,${encodeURIComponent(`
+    import { workerData } from "node:worker_threads";
+    import { acquireRoleLock } from ${JSON.stringify(localStateUrl)};
+    const gate = new Int32Array(workerData.gate);
+    Atomics.store(gate, 0, 1);
+    Atomics.notify(gate, 0);
+    Atomics.wait(gate, 1, 0);
+    try {
+      const lock = await acquireRoleLock(workerData.project, "implementor", {
+        agentDir: workerData.agentDir,
+        pid: 222,
+        isAlive: (pid) => pid !== 111,
+      });
+      Atomics.store(gate, 2, lock.owner.pid);
+    } finally {
+      Atomics.store(gate, 1, 2);
+      Atomics.notify(gate, 1);
+    }
+  `)}`), { workerData: { project, agentDir, gate: gate.buffer } });
+  const exited = new Promise<void>((resolve, reject) => {
+    worker.once("error", reject);
+    worker.once("exit", (code) => code === 0 ? resolve() : reject(new Error(`Lock contender exited ${code}`)));
+  });
+
+  try {
+    const stale = await acquireRoleLock(project, "implementor", {
+      agentDir, pid: 111, isAlive: () => false,
+    });
+    if (Atomics.load(gate, 0) === 0) assert.notEqual(Atomics.wait(gate, 0, 0, 5_000), "timed-out");
+
+    await assert.rejects(acquireRoleLock(project, "implementor", {
+      agentDir,
+      pid: 333,
+      isAlive: (pid) => {
+        if (pid !== 111) return true;
+        Atomics.store(gate, 1, 1);
+        Atomics.notify(gate, 1);
+        if (Atomics.load(gate, 1) === 1) assert.notEqual(Atomics.wait(gate, 1, 1, 5_000), "timed-out");
+        return false;
+      },
+    }), /owned by process 222/);
+    await exited;
+    assert.equal(Atomics.load(gate, 2), 222);
+    await stale.release();
+    await assert.rejects(
+      acquireRoleLock(project, "implementor", { agentDir, pid: 444, isAlive: (pid) => pid === 222 }),
+      /owned by process 222/,
+    );
+  } finally {
+    await worker.terminate();
     await rm(project, { recursive: true, force: true });
     await rm(agentDir, { recursive: true, force: true });
   }

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, open, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { ModelChoice, Role } from "./types.ts";
 
@@ -29,49 +29,83 @@ async function stateDir(project: string, agentDir: string): Promise<string> {
 }
 
 export async function acquireRoleLock(project: string, role: Role, options: LockOptions): Promise<RoleLock> {
-  const file = join(await stateDir(project, options.agentDir), `${role}.lock`);
+  const root = join(await stateDir(project, options.agentDir), `${role}.lock`);
+  await mkdir(root, { recursive: true, mode: 0o700 });
   const owner: LockOwner = {
     pid: options.pid ?? process.pid,
     startedAt: new Date().toISOString(),
     token: randomUUID(),
   };
   const isAlive = options.isAlive ?? processIsAlive;
+  const candidate = join(root, `.candidate-${owner.token}`);
+  await mkdir(candidate, { mode: 0o700 });
+  await writeFile(join(candidate, "owner.json"), JSON.stringify(owner), { mode: 0o600 });
 
-  for (let attempt = 0; attempt < 4; attempt++) {
-    try {
-      const handle = await open(file, "wx", 0o600);
-      await handle.writeFile(JSON.stringify(owner));
-      await handle.close();
-      return {
-        owner,
-        release: async () => {
-          try {
-            const current = JSON.parse(await readFile(file, "utf8")) as LockOwner;
-            if (current.token === owner.token) await rm(file);
-          } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-          }
-        },
-      };
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      let current: LockOwner | undefined;
-      try {
-        current = JSON.parse(await readFile(file, "utf8"));
-      } catch {
-        // A truncated lock is stale.
+  try {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const current = await latestGeneration(root);
+      if (current && !current.retired) {
+        if (isAlive(current.owner.pid)) {
+          throw new Error(`${role} Role is owned by process ${current.owner.pid} since ${current.owner.startedAt}`);
+        }
+        await retireGeneration(current.path);
       }
-      if (current && Number.isSafeInteger(current.pid) && current.pid > 0 && isAlive(current.pid)) {
-        throw new Error(`${role} Role is owned by process ${current.pid} since ${current.startedAt}`);
-      }
+
+      const number = (current?.number ?? -1) + 1;
+      const generation = join(root, String(number));
       try {
-        await rm(file);
-      } catch (removeError) {
-        if ((removeError as NodeJS.ErrnoException).code !== "ENOENT") throw removeError;
+        await rename(candidate, generation);
+        return {
+          owner,
+          release: () => retireGeneration(generation),
+        };
+      } catch (error) {
+        if (!["EEXIST", "ENOTEMPTY"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error;
       }
     }
+    throw new Error(`Could not acquire ${role} Role lock`);
+  } finally {
+    await rm(candidate, { recursive: true, force: true });
   }
-  throw new Error(`Could not acquire ${role} Role lock`);
+}
+
+// Retired generations remain immutable so a stale contender can never remove a replacement.
+interface LockGeneration {
+  number: number;
+  path: string;
+  owner: LockOwner;
+  retired: boolean;
+}
+
+async function latestGeneration(root: string): Promise<LockGeneration | undefined> {
+  const numbers = (await readdir(root, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
+    .map((entry) => Number(entry.name))
+    .filter(Number.isSafeInteger);
+  if (numbers.length === 0) return undefined;
+
+  const number = Math.max(...numbers);
+  const path = join(root, String(number));
+  const owner = JSON.parse(await readFile(join(path, "owner.json"), "utf8")) as LockOwner;
+  if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0 || !owner.token || !owner.startedAt) {
+    throw new Error("Invalid Role lock owner");
+  }
+  try {
+    await readFile(join(path, "retired"));
+    return { number, path, owner, retired: true };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    return { number, path, owner, retired: false };
+  }
+}
+
+async function retireGeneration(path: string): Promise<void> {
+  try {
+    const handle = await open(join(path, "retired"), "wx", 0o600);
+    await handle.close();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
 }
 
 function processIsAlive(pid: number): boolean {
