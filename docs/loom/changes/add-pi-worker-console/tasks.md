@@ -38,7 +38,7 @@
 - [x] C3  Add TypeScript extension modules without a build or runtime dependency
 - [x] C4  Add exact-assignment support to `loom-implement` and `loom-review`
 - [x] C5  Preserve all existing POSIX installer tests and behavior
-- [ ] C6  Record live Pi/GitHub and local Git-package acceptance checks
+- [x] C6  Record live Pi/GitHub and local Git-package acceptance checks
 
 ## Docs
 - [x] D1  Update `docs/loom/project.md`, README, and installed orientation for Pi-native usage
