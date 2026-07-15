@@ -15,7 +15,7 @@
 - [x] B12  Prefer eligible rework over ready work                        → behavior.md §5/1
 - [x] B13  Exclude Claims before oldest-item selection                   → behavior.md §5/2
 - [x] B14  Remain idle with no eligible work                             → behavior.md §5/3
-- [ ] B15  Never substitute an ineligible assignment                     → behavior.md §5/4
+- [x] B15  Never substitute an ineligible assignment                     → behavior.md §5/4
 - [x] B16  Run implementor and reviewer concurrently                     → behavior.md §6/1
 - [x] B17  Discard context between consecutive work units                → behavior.md §6/2
 - [x] B18  Load project policy around the bundled Role contract          → behavior.md §6/3
@@ -36,7 +36,7 @@
 - [ ] C1  Rebase after `add-reviewer-wip-claims` lands and verify symmetric Claims are present
 - [ ] C2  Add root Pi package metadata, peer dependencies, and Node test command
 - [ ] C3  Add TypeScript extension modules without a build or runtime dependency
-- [ ] C4  Add exact-assignment support to `loom-implement` and `loom-review`
+- [x] C4  Add exact-assignment support to `loom-implement` and `loom-review`
 - [ ] C5  Preserve all existing POSIX installer tests and behavior
 - [ ] C6  Record live Pi/GitHub and local Git-package acceptance checks
 

@@ -83,6 +83,16 @@ test("leave projects unchanged on package installation", async () => {
   }
 });
 
+test("never substitute an ineligible assignment", async () => {
+  for (const skill of ["loom-implement", "loom-review"]) {
+    const content = await readFile(join(root, "skills", skill, "SKILL.md"), "utf8");
+    assert.match(content, /## Exact scheduler assignment/);
+    assert.match(content, /verify only that exact Board object/);
+    assert.match(content, /exit without touching the Change/);
+    assert.match(content, /never select or Claim a\s+replacement/i);
+  }
+});
+
 test("run implementor and reviewer concurrently", async () => {
   const prompts = [deferred<void>(), deferred<void>()];
   const created: string[] = [];

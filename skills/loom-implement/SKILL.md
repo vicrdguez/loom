@@ -18,6 +18,14 @@ board reference, keyed off `docs/loom/project.md`'s `## Forge` host (token via e
 - Codeberg / Forgejo / Gitea → [reference/codeberg.md](./reference/codeberg.md)
 - GitLab → [reference/gitlab.md](./reference/gitlab.md)
 
+## Exact scheduler assignment
+
+When the prompt contains a `Scheduler assignment`, verify only that exact Board object by kind and
+number before using its branch or Change. It must still be implementor-eligible (`loom:ready` issue
+or `loom:rework` PR) and lack `loom:wip`; then Claim it through the normal command below. If it is
+missing, claimed, or otherwise ineligible, exit without touching the Change. Never select or Claim a
+replacement. Without a scheduler assignment, use the normal discovery rules below.
+
 ## Claim exactly one unit of work
 
 Two kinds of board object are claimable. Prefer an eligible `loom:rework` bounce (finish what's in
