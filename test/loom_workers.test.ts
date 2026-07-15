@@ -192,6 +192,26 @@ test("recover a stale Role lock", async () => {
   }
 });
 
+test("refuse a second live Role owner", async () => {
+  const project = await mkdtemp(join(tmpdir(), "loom-live-lock-project-"));
+  const agentDir = await mkdtemp(join(tmpdir(), "loom-live-lock-agent-"));
+
+  try {
+    const first = await acquireRoleLock(project, "implementor", { agentDir, pid: 123, isAlive: () => true });
+    await assert.rejects(
+      acquireRoleLock(project, "implementor", { agentDir, pid: 456, isAlive: () => true }),
+      /owned by process 123/,
+    );
+    await first.release();
+    const next = await acquireRoleLock(project, "implementor", { agentDir, pid: 456, isAlive: () => true });
+    assert.equal(next.owner.pid, 456);
+    await next.release();
+  } finally {
+    await rm(project, { recursive: true, force: true });
+    await rm(agentDir, { recursive: true, force: true });
+  }
+});
+
 test("dispose context without cleaning repository work", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-worker-files-"));
   const changed = join(project, "work.txt");

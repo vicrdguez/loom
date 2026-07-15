@@ -9,7 +9,7 @@
 - [ ] B6   Allow matching Role models with a warning                     → behavior.md §3/2
 - [ ] B7   Start available Roles independently                           → behavior.md §3/3
 - [x] B8   Recover a stale Role lock                                     → behavior.md §3/4
-- [ ] B9   Refuse a second live Role owner                               → behavior.md §3/5
+- [x] B9   Refuse a second live Role owner                               → behavior.md §3/5
 - [ ] B10  List all open Board Changes                                   → behavior.md §4/1
 - [ ] B11  Report current Role status                                    → behavior.md §4/2
 - [ ] B12  Prefer eligible rework over ready work                        → behavior.md §5/1
