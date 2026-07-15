@@ -270,6 +270,12 @@ test_filter_claims_before_selecting_one_item() {
   assert_contains "$codeberg" 'Filtering must happen before selection'
 }
 
+test_prefer_eligible_rework_over_ready_work() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
+  assert_contains "$implement" 'before starting an eligible `loom:ready` issue'
+}
+
 test_checkout_install_includes_architecture_review_skill() {
   project=$(make_project local-install)
   home=$(make_home local-install)
@@ -676,6 +682,8 @@ run_test "Provision the WIP label on every supported forge" \
   test_provision_wip_label_on_every_supported_forge
 run_test "Filter Claims before selecting one item" \
   test_filter_claims_before_selecting_one_item
+run_test "Prefer eligible rework over eligible ready work" \
+  test_prefer_eligible_rework_over_ready_work
 run_test "Checkout install includes the architecture review skill" \
   test_checkout_install_includes_architecture_review_skill
 run_test "Install the latest non-prerelease release" \

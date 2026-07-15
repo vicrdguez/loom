@@ -20,8 +20,10 @@ board reference, keyed off `docs/loom/project.md`'s `## Forge` host (token via e
 
 ## Claim exactly one unit of work
 
-Two kinds of board object are claimable. Prefer a `loom:rework` bounce (finish what's in flight)
-before starting a fresh `loom:ready` issue/PR and always chose the older objects first. If the board object claims a dependency with other issue (e.g. _Blocked by [...]_) prioritize the blocking item(s).
+Two kinds of board object are claimable. Prefer an eligible `loom:rework` bounce (finish what's in
+flight) before starting an eligible `loom:ready` issue, and choose the oldest eligible object within
+each lifecycle. If the board object claims a dependency with another issue (e.g. _Blocked by [...]_),
+prioritize the blocking item(s).
 
 - **A `loom:ready` issue** — a newly published change to build from scratch. Its title is the
   `<slug>`. Claim the oldest open one; fetch and check out its change branch. The brief lives on that
