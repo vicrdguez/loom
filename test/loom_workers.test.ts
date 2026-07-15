@@ -274,6 +274,55 @@ test("remain idle with no eligible work", async () => {
   assert.equal(workerStarts, 0);
 });
 
+test("classify Board state after session settlement", async () => {
+  const cases = [
+    ["implementor", "left", "cooldown"],
+    ["reviewer", "left", "cooldown"],
+    ["implementor", "eligible", "retry-backoff"],
+    ["reviewer", "eligible", "retry-backoff"],
+    ["implementor", "claimed", "awaiting-requeue"],
+    ["reviewer", "claimed", "awaiting-requeue"],
+    ["reviewer", "unavailable", "degraded"],
+  ] as const;
+
+  for (const [role, boardState, expected] of cases) {
+    const scheduler = new FakeScheduler();
+    const done = deferred<{ ok: boolean }>();
+    const item = role === "implementor"
+      ? { kind: "issue" as const, number: 1, title: "change", url: "u", lifecycle: "ready" as const, claimed: false, createdAt: "1" }
+      : { kind: "pr" as const, number: 1, title: "change", url: "u", lifecycle: "review" as const, claimed: false, createdAt: "1" };
+    const board = {
+      next: async () => item,
+      observe: async () => {
+        if (boardState === "unavailable") throw new Error("GitHub unavailable");
+        if (boardState === "left") return { ...item, lifecycle: "done" as const };
+        return { ...item, claimed: boardState === "claimed" };
+      },
+    };
+    const lane = new RoleLane({
+      role,
+      board,
+      worker: { start: async () => ({
+        sessionId: role,
+        settled: done.promise,
+        abort: async () => {},
+        dispose() {},
+      }) },
+      model: { provider: "p", model: "m", thinking: "off" },
+      schedule: scheduler.schedule,
+      now: () => scheduler.now,
+    });
+
+    lane.start();
+    await scheduler.runNext();
+    assert.equal(lane.snapshot().state, "running", `${role} starts running`);
+    done.resolve({ ok: true });
+    await new Promise((resolve) => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(lane.snapshot().state, expected, `${role} ${boardState}`);
+  }
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));
