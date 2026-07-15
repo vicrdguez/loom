@@ -444,6 +444,20 @@ test("observe one exact GitHub Board object", async () => {
   assert.equal(observed?.headRefName, "change");
 });
 
+test("degrade when exact Board observation has a transport failure", async () => {
+  const board = new GitHubBoard("owner/repo", async () => ({
+    code: 1,
+    stdout: "",
+    stderr: "Could not resolve host: api.github.com",
+  }));
+  const item = {
+    kind: "pr" as const, number: 7, title: "change", url: "u", createdAt: "1",
+    lifecycle: "review" as const, claimed: false,
+  };
+
+  await assert.rejects(board.observe(item), /Could not resolve host/);
+});
+
 test("prefer eligible rework over ready work", async () => {
   const rows: Record<string, any[]> = {
     "loom:ready": [{ number: 1, title: "ready", url: "u1", createdAt: "2026-01-01", state: "OPEN", labels: [{ name: "loom:ready" }] }],

@@ -8,6 +8,8 @@ export interface CommandResult {
 
 export type GhRunner = (args: string[]) => Promise<CommandResult>;
 
+const missingObject = /not found|could not resolve to/i;
+
 const searches: Array<{ lifecycle: Lifecycle; kind: "issue" | "pr" }> = [
   { lifecycle: "ready", kind: "issue" },
   { lifecycle: "review", kind: "pr" },
@@ -65,11 +67,11 @@ export class GitHubBoard {
           : "number,title,url,createdAt,state,labels",
       ]);
     } catch (error) {
-      if (/not found|could not resolve/i.test(error instanceof Error ? error.message : String(error))) return undefined;
+      if (missingObject.test(error instanceof Error ? error.message : String(error))) return undefined;
       throw error;
     }
     if (result.code && result.code !== 0) {
-      if (/not found|could not resolve/i.test(result.stderr ?? "")) return undefined;
+      if (missingObject.test(result.stderr ?? "")) return undefined;
       throw new Error(result.stderr || `gh exited ${result.code}`);
     }
     const row = JSON.parse(result.stdout);
