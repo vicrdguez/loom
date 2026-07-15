@@ -11,7 +11,7 @@
 - [x] B8   Recover a stale Role lock                                     → behavior.md §3/4
 - [x] B9   Refuse a second live Role owner                               → behavior.md §3/5
 - [x] B10  List all open Board Changes                                   → behavior.md §4/1
-- [ ] B11  Report current Role status                                    → behavior.md §4/2
+- [x] B11  Report current Role status                                    → behavior.md §4/2
 - [x] B12  Prefer eligible rework over ready work                        → behavior.md §5/1
 - [x] B13  Exclude Claims before oldest-item selection                   → behavior.md §5/2
 - [x] B14  Remain idle with no eligible work                             → behavior.md §5/3

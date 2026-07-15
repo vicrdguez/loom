@@ -8,7 +8,7 @@ import { createPiSessionFactory, PiWorker } from "../extensions/loom-workers/pi-
 import { acquireRoleLock } from "../extensions/loom-workers/local-state.ts";
 import { GitHubBoard } from "../extensions/loom-workers/github.ts";
 import { RoleLane } from "../extensions/loom-workers/lane.ts";
-import { Coordinator } from "../extensions/loom-workers/coordinator.ts";
+import { Coordinator, formatStatus } from "../extensions/loom-workers/coordinator.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -276,6 +276,27 @@ test("list all open Board Changes", async () => {
     ["rework", 3, false],
     ["done", 4, false],
   ]);
+});
+
+test("report current Role status", () => {
+  const text = formatStatus([{
+    role: "implementor",
+    state: "running",
+    current: { kind: "issue", number: 12, title: "change", url: "u", lifecycle: "ready", claimed: true, createdAt: "1" },
+    model: { provider: "provider", model: "model", thinking: "high" },
+    startedAt: 1_000,
+    retries: 2,
+    lastOutcome: "Worker running",
+    nextPoll: 70_000,
+  }, { role: "reviewer", state: "stopped" }], 61_000);
+
+  assert.match(text, /implementor.*running.*change.*#12/i);
+  assert.match(text, /provider\/model.*high/);
+  assert.match(text, /elapsed 1m/);
+  assert.match(text, /retries 2/);
+  assert.match(text, /Worker running/);
+  assert.match(text, /next poll 9s/);
+  assert.match(text, /reviewer.*stopped/i);
 });
 
 test("observe one exact GitHub Board object", async () => {

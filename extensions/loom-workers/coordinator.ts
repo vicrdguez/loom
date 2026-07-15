@@ -28,6 +28,30 @@ export interface StartResult {
   failures: Partial<Record<Role, string>>;
 }
 
+type StatusRow = LaneSnapshot | { role: Role; state: "stopped" };
+
+export function formatStatus(rows: StatusRow[], now = Date.now()): string {
+  return rows.map((row) => {
+    if (row.state === "stopped") return `${row.role}: stopped`;
+    const parts = [`${row.role}: ${row.state}`];
+    if (row.current) parts.push(`${row.current.title} #${row.current.number}`);
+    parts.push(`${row.model.provider}/${row.model.model} (${row.model.thinking})`);
+    if (row.startedAt !== undefined) parts.push(`elapsed ${duration(now - row.startedAt)}`);
+    parts.push(`retries ${row.retries}`);
+    if (row.lastOutcome) parts.push(row.lastOutcome);
+    if (row.nextPoll !== undefined) parts.push(`next poll ${duration(row.nextPoll - now)}`);
+    return parts.join(" — ");
+  }).join("\n");
+}
+
+function duration(milliseconds: number): string {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1_000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
+
 export class Coordinator {
   private readonly options: CoordinatorOptions;
   private readonly lanes = new Map<Role, RoleLane>();
@@ -90,7 +114,7 @@ export class Coordinator {
     return this.options.board.listOpen();
   }
 
-  status(): Array<LaneSnapshot | { role: Role; state: "stopped" }> {
+  status(): StatusRow[] {
     return (["implementor", "reviewer"] as Role[]).map((role) =>
       this.lanes.get(role)?.snapshot() ?? { role, state: "stopped" },
     );
