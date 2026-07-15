@@ -125,6 +125,15 @@ curl -fsSL -X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: app
 
 Forgejo PRs share the issue label endpoint; the PR index is its issue index.
 
+## Inspect handoff state
+
+After a reviewer transition, inspect the labels before reporting success:
+
+```sh
+curl -fsSL -H "Authorization: token $FORGEJO_TOKEN" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<pr-index>" | jq -r '.labels[].name'
+```
+
 ## Feedback as PR comments (loom-review)
 
 The reviewer edits no code; findings are comments.

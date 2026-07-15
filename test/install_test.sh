@@ -349,6 +349,9 @@ test_report_a_partial_reviewer_handoff_as_incomplete() {
   assert_contains "$review" '`loom:done` or `loom:rework` with `loom:wip` removed'
   assert_contains "$review" 'report the exact incomplete Board state'
   assert_contains "$review" 'Do not present the review as successfully handed off'
+  for forge in github gitlab codeberg; do
+    assert_contains "$(board_file "loom-implement/reference/$forge.md")" 'Inspect handoff state'
+  done
 }
 
 test_install_the_symmetric_reviewer_claim_protocol() {

@@ -87,6 +87,14 @@ glab mr update <iid> --unlabel "loom:rework,loom:wip" --label "loom:review"
 glab mr update <iid> --unlabel "loom:review,loom:wip" --label "loom:done"
 ```
 
+## Inspect handoff state
+
+After a reviewer transition, inspect the labels before reporting success:
+
+```sh
+glab mr view <mr-iid> --output json | jq -r '.labels[]'
+```
+
 ## Feedback as MR comments (loom-review)
 
 The reviewer edits no code; findings are notes on the MR.

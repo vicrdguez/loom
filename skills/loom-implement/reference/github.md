@@ -131,6 +131,14 @@ gh pr edit <pr-number> --repo "<owner>/<repo>" \
 gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:review,loom:wip" --add-label "loom:done"
 ```
 
+## Inspect handoff state
+
+After a reviewer transition, inspect the labels before reporting success:
+
+```sh
+gh pr view <pr-number> --repo "<owner>/<repo>" --json labels --jq '[.labels[].name]'
+```
+
 ## Feedback as PR comments (loom-review)
 
 The reviewer edits **no code**; findings go on the PR as comments. Inline comments anchor to a line;
