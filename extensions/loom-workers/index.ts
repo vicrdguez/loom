@@ -172,10 +172,36 @@ function usage(ctx: any): void {
 function textComponent(text: string) {
   return {
     render(width: number) {
-      return text.split("\n").flatMap((line) => line.length > width
-        ? Array.from({ length: Math.ceil(line.length / width) }, (_, index) => line.slice(index * width, (index + 1) * width))
-        : [line]);
+      return text.split("\n").flatMap((line) => wrapLine(line, width));
     },
     invalidate() {},
   };
+}
+
+function wrapLine(line: string, width: number): string[] {
+  if (width < 1) return [""];
+  const lines: string[] = [];
+  let current = "";
+  let currentWidth = 0;
+  for (const { segment } of new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(line)) {
+    const segmentWidth = terminalWidth(segment);
+    if (current && currentWidth + segmentWidth > width) {
+      lines.push(current);
+      current = "";
+      currentWidth = 0;
+    }
+    if (segmentWidth <= width) {
+      current += segment;
+      currentWidth += segmentWidth;
+    }
+  }
+  lines.push(current);
+  return lines;
+}
+
+const wideCharacter = /\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u{1100}-\u{115f}\u{2329}\u{232a}\u{2e80}-\u{a4cf}\u{ac00}-\u{d7a3}\u{f900}-\u{faff}\u{fe10}-\u{fe19}\u{fe30}-\u{fe6f}\u{ff00}-\u{ff60}\u{ffe0}-\u{ffe6}\u{1b000}-\u{1b2ff}\u{1f200}-\u{1f251}\u{20000}-\u{3fffd}]/u;
+
+function terminalWidth(grapheme: string): number {
+  if (wideCharacter.test(grapheme) || grapheme.includes("\ufe0f") || grapheme.includes("\u20e3")) return 2;
+  return /[^\p{Mark}\p{Control}\u200d\ufe0e\ufe0f]/u.test(grapheme) ? 1 : 0;
 }

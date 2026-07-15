@@ -1193,9 +1193,23 @@ test("keep Worker narration out of parent model context", async () => {
     ["failure", "Lifecycle failed"],
   ]);
   const appended: any[] = [];
+  const renderers: Record<string, (entry: any) => { render(width: number): string[] }> = {};
   const extension = await import("../extensions/loom-workers/index.ts");
+  extension.default({
+    registerCommand() {},
+    registerEntryRenderer(name: string, renderer: typeof renderers[string]) { renderers[name] = renderer; },
+    on() {},
+  } as any);
   extension.presentActivity({ appendEntry: (...args: any[]) => appended.push(args) } as any, activities[0]);
   assert.deepEqual(appended, [["loom-workers-activity", activities[0]]]);
+
+  const text = "[reviewer] 界界🙂";
+  const lines = renderers["loom-workers-activity"]({ data: { role: "reviewer", kind: "message", text: "界界🙂" } }).render(13);
+  const displayWidth = (line: string) => Array.from(line).reduce((width, character) =>
+    width + (/\p{Extended_Pictographic}|\p{Script=Han}/u.test(character) ? 2 : 1), 0);
+  assert.ok(lines.every((line) => displayWidth(line) <= 13));
+  assert.equal(lines.join(""), text);
+  assert.doesNotMatch(lines.join("|"), /[\uD800-\uDBFF]\||\|[\uDC00-\uDFFF]/);
   pending.resolve();
   await run.settled;
 });
