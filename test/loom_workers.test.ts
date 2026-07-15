@@ -762,6 +762,56 @@ test("recover awaiting-requeue observation after a Board failure", async () => {
   assert.equal(lane.snapshot().state, "awaiting-requeue");
 });
 
+test("resume retries the exact assignment after a reconciliation Board failure", async () => {
+  const scheduler = new FakeScheduler();
+  const first = deferred<{ ok: boolean }>();
+  const second = deferred<{ ok: boolean }>();
+  const firstItem = { kind: "pr" as const, number: 1, title: "first", url: "u1", lifecycle: "review" as const, claimed: false, createdAt: "1" };
+  const secondItem = { ...firstItem, number: 2, title: "second", url: "u2", createdAt: "2" };
+  let selections = 0;
+  let observations = 0;
+  const starts: number[] = [];
+  const lane = new RoleLane({
+    role: "reviewer",
+    board: {
+      next: async () => (++selections === 1 ? firstItem : secondItem),
+      observe: async (item) => {
+        observations++;
+        if (observations === 1) throw new Error("temporary");
+        return item;
+      },
+    },
+    worker: { start: async (_role: string, item: typeof firstItem) => {
+      starts.push(item.number);
+      return {
+        sessionId: String(item.number),
+        settled: item.number === 1 && starts.length === 1 ? first.promise : second.promise,
+        abort: async () => {},
+        dispose() {},
+      };
+    } },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+
+  lane.start();
+  await scheduler.runNext();
+  first.resolve({ ok: false });
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(lane.snapshot().state, "degraded");
+  lane.pause();
+  assert.equal(lane.resume(), true);
+  await scheduler.runNext();
+  await scheduler.runNext();
+
+  assert.deepEqual(starts, [1, 1]);
+  assert.equal(selections, 1);
+  assert.equal(lane.snapshot().current?.number, 1);
+  second.resolve({ ok: true });
+});
+
 test("pause when an observed Claim becomes orphaned", async () => {
   const scheduler = new FakeScheduler();
   const done = deferred<{ ok: boolean }>();

@@ -60,6 +60,7 @@ export class RoleLane {
   private readonly cancelTimeoutMs: number;
   private state: LaneState = "stopped";
   private timer?: { cancel(): void };
+  private timerAction?: () => Promise<void> | void;
   private nextPoll?: number;
   private startedAt?: number;
   private retries = 0;
@@ -116,12 +117,7 @@ export class RoleLane {
       return;
     }
     this.generation++;
-    const previous = this.state;
-    this.pauseManually(previous === "awaiting-requeue"
-      ? () => { this.state = "awaiting-requeue"; this.setTimer(0, () => this.observeAwaiting()); this.changed(); }
-      : previous === "retry-backoff"
-        ? () => { this.state = "retry-backoff"; this.setTimer(0, () => this.retryExact()); this.changed(); }
-        : () => this.pollForWork());
+    this.pauseManually(this.timerAction ?? (() => this.pollForWork()));
   }
 
   resume(): boolean {
@@ -398,6 +394,7 @@ export class RoleLane {
 
   private setTimer(delay: number, action: () => Promise<void> | void) {
     this.timer?.cancel();
+    this.timerAction = action;
     this.nextPoll = this.now() + delay;
     this.timer = this.schedule(() => { void action(); }, delay);
   }
@@ -405,6 +402,7 @@ export class RoleLane {
   private clearTimer() {
     this.timer?.cancel();
     this.timer = undefined;
+    this.timerAction = undefined;
     this.nextPoll = undefined;
   }
 
