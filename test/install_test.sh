@@ -328,6 +328,47 @@ test_report_partial_handoff_as_incomplete() {
   assert_contains "$implement" 'success or select another Change'
 }
 
+test_forge_command_contracts_preserve_wip_claims() {
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" '"loom:wip|An implementor is actively working this change|fbca04"'
+  assert_contains "$github" 'gh issue edit <issue-number> --repo "<owner>/<repo>" --add-label "loom:wip"'
+  assert_contains "$github" 'gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"'
+  assert_contains "$github" 'gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"'
+  assert_contains "$github" 'gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:wip"'
+  assert_contains "$github" 'gh pr create --repo "<owner>/<repo>" --label "loom:review" \
+  --title "<title>" --body-file body.md --base main --head "<slug>"
+gh issue close <issue-number> --repo "<owner>/<repo>" \
+  --comment "Built and opened for review in #<pr-number>."
+gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"'
+  assert_contains "$github" '--remove-label "loom:rework,loom:wip" --add-label "loom:review"'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" 'for name in loom:ready loom:wip loom:review loom:rework loom:done; do'
+  assert_contains "$gitlab" 'glab issue update <issue-iid> --label "loom:wip"'
+  assert_contains "$gitlab" 'glab mr update <mr-iid> --label "loom:wip"'
+  assert_contains "$gitlab" 'glab issue update <issue-iid> --unlabel "loom:wip"'
+  assert_contains "$gitlab" 'glab mr update <mr-iid> --unlabel "loom:wip"'
+  assert_contains "$gitlab" 'glab mr create --source-branch "<slug>" --target-branch main \
+  --title "<title>" --description "$(cat body.md)" --label "loom:review"
+glab issue close <issue-iid>
+glab issue update <issue-iid> --unlabel "loom:wip"'
+  assert_contains "$gitlab" '--unlabel "loom:rework,loom:wip" --label "loom:review"'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'for name in loom:ready loom:wip loom:review loom:rework loom:done; do'
+  assert_contains "$codeberg" '-X POST -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json"'
+  assert_contains "$codeberg" '-d "{\"labels\":[$wip_id]}"'
+  assert_contains "$codeberg" '-X DELETE -H "Authorization: token $FORGEJO_TOKEN"'
+  assert_contains "$codeberg" '/labels/$wip_id'
+  assert_contains "$codeberg" 'tea pr create --head "<slug>" --base main --title "<title>" --description "$(cat body.md)"
+tea issue edit <index> --add-labels "loom:review"        # if the PR create didn'"'"'t take labels
+tea issue close <issue-index>
+curl -fsSL -X DELETE -H "Authorization: token $FORGEJO_TOKEN" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<issue-index>/labels/$wip_id"'
+  assert_contains "$codeberg" '-X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json"'
+  assert_contains "$codeberg" '-d "{\"labels\":[$review_id]}"'
+}
+
 test_codeberg_uses_numeric_label_ids() {
   codeberg=$(board_file loom-implement/reference/codeberg.md)
   assert_contains "$codeberg" 'resolve_label_id'
@@ -771,6 +812,8 @@ run_test "Release a rework Claim by handing the PR to review" \
   test_release_rework_claim_by_handing_to_review
 run_test "Report a partial handoff as incomplete" \
   test_report_partial_handoff_as_incomplete
+run_test "Preserve WIP claims in every forge command contract" \
+  test_forge_command_contracts_preserve_wip_claims
 run_test "Resolve Codeberg label names to numeric IDs" \
   test_codeberg_uses_numeric_label_ids
 run_test "Explain the remaining simultaneous-selection race" \

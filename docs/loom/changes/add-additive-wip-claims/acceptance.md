@@ -5,4 +5,4 @@
 - [ ] On Forgejo, exercise claim, requeue, and review handoff commands; confirm numeric label IDs are accepted by the API.
 
 ## Notes from implementation
-Installer tests cover the installed instruction payload and handoff invariants. Live forge command execution remains manual because each forge is an external system.
+Installer tests cover the installed instruction payload, including the concrete provisioning, claim, requeue, and handoff commands for every forge. Live forge command execution remains manual because each forge is an external system.

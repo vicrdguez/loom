@@ -20,6 +20,7 @@ How Loom's skills move from architecture discovery to a proposed, tested, and su
   human requeues them; successful handoff removes the Claim only after implementor eligibility ends.
   -> `test/install_test.sh::test_filter_claims_before_selecting_one_item`,
   `test/install_test.sh::test_add_advisory_claim_without_replacing_lifecycle`,
+  `test/install_test.sh::test_forge_command_contracts_preserve_wip_claims`,
   `test/install_test.sh::test_retain_an_interrupted_claim` (added 2026-07-15)
 
 ## Decisions
