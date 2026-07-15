@@ -212,6 +212,26 @@ test("prefer eligible rework over ready work", async () => {
   assert.equal((await board.next("implementor"))?.number, 2);
 });
 
+test("exclude Claims before oldest-item selection", async () => {
+  for (const [role, lifecycle, kind] of [
+    ["implementor", "ready", "issue"],
+    ["implementor", "rework", "pr"],
+    ["reviewer", "review", "pr"],
+  ] as const) {
+    const rows: Record<string, any[]> = {
+      "loom:ready": [], "loom:review": [], "loom:rework": [], "loom:done": [],
+    };
+    rows[`loom:${lifecycle}`] = [
+      { number: 1, title: "claimed", url: "u1", createdAt: "1", state: "OPEN", labels: [{ name: `loom:${lifecycle}` }, { name: "loom:wip" }] },
+      { number: 2, title: "eligible", url: "u2", createdAt: "2", state: "OPEN", labels: [{ name: `loom:${lifecycle}` }] },
+    ];
+    const board = new GitHubBoard("owner/repo", async (args) => ({
+      stdout: JSON.stringify(rows[args[args.indexOf("--label") + 1]].map((row) => ({ ...row, kind }))),
+    }));
+    assert.equal((await board.next(role))?.number, 2, `${role} ${lifecycle}`);
+  }
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));

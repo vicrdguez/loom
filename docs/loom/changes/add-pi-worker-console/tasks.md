@@ -13,7 +13,7 @@
 - [x] B10  List all open Board Changes                                   → behavior.md §4/1
 - [ ] B11  Report current Role status                                    → behavior.md §4/2
 - [x] B12  Prefer eligible rework over ready work                        → behavior.md §5/1
-- [ ] B13  Exclude Claims before oldest-item selection                   → behavior.md §5/2
+- [x] B13  Exclude Claims before oldest-item selection                   → behavior.md §5/2
 - [ ] B14  Remain idle with no eligible work                             → behavior.md §5/3
 - [ ] B15  Never substitute an ineligible assignment                     → behavior.md §5/4
 - [x] B16  Run implementor and reviewer concurrently                     → behavior.md §6/1
