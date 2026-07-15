@@ -75,7 +75,7 @@ glab issue close <issue-iid>
 glab issue update <issue-iid> --unlabel "loom:wip"
 ```
 
-## Swap labels (rework ↔ review; review → done)
+## Swap labels (rework + wip → review; review → rework/done)
 
 ```sh
 # reviewer bounces:  review → rework

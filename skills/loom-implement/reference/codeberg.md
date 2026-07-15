@@ -26,9 +26,10 @@ existing=$(curl -fsSL -H "Authorization: token $FORGEJO_TOKEN" \
   "https://codeberg.org/api/v1/repos/<owner>/<repo>/labels" | grep -o '"name":"[^"]*"')
 for name in loom:ready loom:wip loom:review loom:rework loom:done; do
   printf '%s' "$existing" | grep -q "\"name\":\"$name\"" && continue
+  color="0e8a16"; [ "$name" = "loom:wip" ] && color="fbca04"
   curl -fsSL -X POST -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
     "https://codeberg.org/api/v1/repos/<owner>/<repo>/labels" \
-    -d "{\"name\":\"$name\",\"color\":\"#0e8a16\"}"
+    -d "{\"name\":\"$name\",\"color\":\"$color\"}"
 done
 ```
 

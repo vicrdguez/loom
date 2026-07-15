@@ -115,7 +115,7 @@ gh issue close <issue-number> --repo "<owner>/<repo>" \
 gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"
 ```
 
-## Swap labels (loom-implement rework → review; loom-review pass/fail)
+## Swap labels (loom-implement rework + wip → review; loom-review pass/fail)
 
 A PR carries exactly one lifecycle label at a time. Remove the old, add the new:
 

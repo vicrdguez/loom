@@ -30,5 +30,5 @@ How Loom's skills move from architecture discovery to a proposed, tested, and su
   [ADR-0007](../adr/0007-board-claims-use-additive-wip-label.md).
 
 ## Language
-**Architecture review**, **Change**, **Durable doc**, **Capability doc**, **Verification**, and
-**Acceptance** - see [CONTEXT.md](../../CONTEXT.md).
+**Architecture review**, **Change**, **Claim**, **Durable doc**, **Capability doc**, **Verification**,
+and **Acceptance** - see [CONTEXT.md](../../CONTEXT.md).

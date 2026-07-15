@@ -1,6 +1,6 @@
 ---
 name: loom-implement
-description: The implementor worker in Loom's multi-model topology — claim a loom:ready issue (or a loom:rework PR) off the forge board, set up the branch, build the change test-first by composing loom-apply, push, and open (or update) a PR labeled loom:review, closing the issue on first PR open. It only presents work; it never verifies, archives, or blesses. Use when running Loom's build stage as a board worker, or when the user says implement/claim/pick up a ready change from the board.
+description: The implementor worker in Loom's multi-model topology — claim an unclaimed loom:ready issue (or loom:rework PR) by adding loom:wip, build the change test-first by composing loom-apply, then present it for loom:review. It only presents work; it never verifies, archives, or blesses. Use when running Loom's build stage as a board worker, or when the user says implement/claim/pick up a ready change from the board.
 ---
 
 # loom-implement
@@ -21,9 +21,12 @@ board reference, keyed off `docs/loom/project.md`'s `## Forge` host (token via e
 ## Claim exactly one unit of work
 
 Two kinds of board object are claimable. Prefer an eligible `loom:rework` bounce (finish what's in
-flight) before starting an eligible `loom:ready` issue, and choose the oldest eligible object within
+flight) before starting an eligible `loom:ready` issue/PR, and choose the oldest eligible object within
 each lifecycle. If the board object claims a dependency with another issue (e.g. _Blocked by [...]_),
 prioritize the blocking item(s).
+
+In both cases, an object carrying the additive `loom:wip` label is already claimed and **must be
+skipped**.
 
 - **A `loom:ready` issue** — a newly published change to build from scratch. Its title is the
   `<slug>`. Claim the oldest open one; fetch and check out its change branch. The brief lives on that

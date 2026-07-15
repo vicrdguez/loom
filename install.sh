@@ -3,7 +3,7 @@
 # and injects a lean orientation block into AGENTS.md. POSIX sh, no dependencies.
 set -eu
 
-LOOM_VERSION="0.1.2"
+LOOM_VERSION="0.2.0"
 GITHUB_URL="https://github.com"
 GITHUB_API_URL="https://api.github.com"
 LOOM_REPO="vicrdguez/loom"
@@ -232,7 +232,7 @@ skills_dir_for() {
     case $1 in
       claude) printf '%s/.claude/skills' "$PROJECT" ;;
       codex) printf '%s/.codex/skills' "$PROJECT" ;;
-      opencode) printf '%s/.opencode/skills' "$PROJECT" ;;
+      opencode) printf '%s/.agents/skills' "$PROJECT" ;;
     esac
   fi
 }

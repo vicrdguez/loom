@@ -2,6 +2,10 @@
 How Loom installs and removes its skills, docs scaffold, and agent instructions.
 
 ## Behaviors
+- OpenCode project installs write skills to the agent-compatible `.agents/skills` directory; global
+  installs continue to use `~/.config/opencode/skills`.
+  -> `test/install_test.sh::test_opencode_project_install_uses_agent_compatible_skills_dir`
+  (added 2026-07-15)
 - A checkout install uses the payload beside `install.sh` and does not request remote release data.
   -> `test/install_test.sh::test_checkout_install_includes_architecture_review_skill`
   (updated 2026-07-04)
