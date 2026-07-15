@@ -92,3 +92,37 @@ test("run implementor and reviewer concurrently", async () => {
   prompts[1].resolve();
   await Promise.all([implementor.settled, reviewer.settled]);
 });
+
+test("discard context between consecutive work units", async () => {
+  const events: string[] = [];
+  let nextId = 0;
+  const worker = new PiWorker({
+    projectRoot: root,
+    loadContract: async () => "contract",
+    createSession: async () => {
+      const id = `session-${++nextId}`;
+      events.push(`create:${id}`);
+      return {
+        id,
+        messages: [],
+        subscribe() { return () => {}; },
+        prompt: async () => {},
+        abort: async () => {},
+        dispose() { events.push(`dispose:${id}`); },
+      };
+    },
+  });
+  const item = {
+    kind: "issue" as const, number: 1, title: "one", url: "one", lifecycle: "ready" as const,
+    claimed: false, createdAt: "1",
+  };
+  const choice = { provider: "p", model: "m", thinking: "off" as const };
+
+  const first = await worker.start("implementor", item, choice, () => {});
+  await first.settled;
+  const second = await worker.start("implementor", item, choice, () => {});
+  await second.settled;
+
+  assert.notEqual(first.sessionId, second.sessionId);
+  assert.deepEqual(events, ["create:session-1", "dispose:session-1", "create:session-2", "dispose:session-2"]);
+});
