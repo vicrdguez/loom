@@ -195,6 +195,23 @@ test("list all open Board Changes", async () => {
   ]);
 });
 
+test("prefer eligible rework over ready work", async () => {
+  const rows: Record<string, any[]> = {
+    "loom:ready": [{ number: 1, title: "ready", url: "u1", createdAt: "2026-01-01", state: "OPEN", labels: [{ name: "loom:ready" }] }],
+    "loom:review": [],
+    "loom:rework": [
+      { number: 3, title: "newer rework", url: "u3", createdAt: "2026-01-03", state: "OPEN", labels: [{ name: "loom:rework" }] },
+      { number: 2, title: "older rework", url: "u2", createdAt: "2026-01-02", state: "OPEN", labels: [{ name: "loom:rework" }] },
+    ],
+    "loom:done": [],
+  };
+  const board = new GitHubBoard("owner/repo", async (args) => ({
+    stdout: JSON.stringify(rows[args[args.indexOf("--label") + 1]]),
+  }));
+
+  assert.equal((await board.next("implementor"))?.number, 2);
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));

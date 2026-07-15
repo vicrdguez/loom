@@ -51,8 +51,18 @@ export class GitHubBoard {
     return items;
   }
 
-  async next(_role: Role): Promise<BoardItem | undefined> {
-    return undefined;
+  async next(role: Role): Promise<BoardItem | undefined> {
+    const eligible = (await this.listOpen()).filter((item) =>
+      !item.claimed && (role === "reviewer"
+        ? item.kind === "pr" && item.lifecycle === "review"
+        : (item.kind === "issue" && item.lifecycle === "ready") ||
+          (item.kind === "pr" && item.lifecycle === "rework")),
+    );
+    eligible.sort((left, right) => {
+      const lifecycle = Number(left.lifecycle !== "rework") - Number(right.lifecycle !== "rework");
+      return lifecycle || left.createdAt.localeCompare(right.createdAt) || left.number - right.number;
+    });
+    return eligible[0];
   }
 }
 
