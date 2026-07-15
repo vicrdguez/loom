@@ -1009,24 +1009,57 @@ test("apply deterministic lane controls", async () => {
 
 test("stop extension resources on parent session shutdown", async () => {
   const handlers: Record<string, () => Promise<void>> = {};
-  const extension = await import("../extensions/loom-workers/index.ts");
-  extension.default({
-    registerCommand() {},
-    registerEntryRenderer() {},
-    on(name: string, handler: () => Promise<void>) { handlers[name] = handler; },
-  } as any);
-  assert.equal(typeof handlers.session_shutdown, "function");
+  const scheduler = new FakeScheduler();
+  const done = deferred<{ ok: boolean }>();
+  let aborted = false;
+  let disposed = false;
+  let released = false;
+  const item = {
+    kind: "issue" as const, number: 1, title: "change", url: "u", lifecycle: "ready" as const,
+    claimed: false, createdAt: "1",
+  };
+  const coordinator = new Coordinator({
+    board: { listOpen: async () => [], next: async () => item, observe: async () => item },
+    worker: { start: async () => ({
+      sessionId: "worker",
+      settled: done.promise,
+      abort: async () => { aborted = true; done.resolve({ ok: false }); },
+      dispose() { disposed = true; },
+    }) },
+    acquire: async () => ({
+      owner: { pid: 1 },
+      release: async () => { released = true; },
+    }),
+    saveChoice: async () => {},
+    createLane: (options) => new RoleLane({ ...options, schedule: scheduler.schedule, now: () => scheduler.now }),
+  });
+  const choice = { provider: "p", model: "m", thinking: "off" as const };
+  await coordinator.start("implementor", { implementor: choice });
+  await scheduler.runNext();
 
   const cleared: string[] = [];
-  let stopped = false;
-  await extension.shutdownConsole({ shutdown: async () => { stopped = true; } } as any, {
+  const context = {
     hasUI: true,
     ui: {
       setStatus(name: string, value: unknown) { if (value === undefined) cleared.push(`status:${name}`); },
       setWidget(name: string, value: unknown) { if (value === undefined) cleared.push(`widget:${name}`); },
     },
-  });
-  assert.equal(stopped, true);
+  };
+  const extension = await import("../extensions/loom-workers/index.ts");
+  extension.default({
+    registerCommand() {},
+    registerEntryRenderer() {},
+    on(name: string, handler: () => Promise<void>) { handlers[name] = handler; },
+  } as any, { coordinator, activeContext: context } as any);
+  assert.equal(typeof handlers.session_shutdown, "function");
+
+  await handlers.session_shutdown();
+
+  assert.deepEqual([aborted, disposed, released], [true, true, true]);
+  assert.deepEqual(coordinator.status(), [
+    { role: "implementor", state: "stopped" },
+    { role: "reviewer", state: "stopped" },
+  ]);
   assert.deepEqual(cleared, ["status:loom-workers", "widget:loom-workers"]);
 });
 

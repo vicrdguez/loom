@@ -24,9 +24,12 @@ export async function shutdownConsole(
   }
 }
 
-export default function loomWorkers(pi: ExtensionAPI) {
-  let coordinator: Coordinator | undefined;
-  let activeContext: any;
+export default function loomWorkers(
+  pi: ExtensionAPI,
+  initial: { coordinator?: Coordinator; activeContext?: any } = {},
+) {
+  let coordinator = initial.coordinator;
+  let activeContext = initial.activeContext;
 
   pi.registerEntryRenderer("loom-workers-activity", (entry: any) => textComponent(
     `[${entry.data.role}] ${entry.data.kind === "failure" ? "failed: " : ""}${entry.data.text}`,
