@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import test from "node:test";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,4 +31,24 @@ test("discover the extension and every Loom skill", async () => {
   assert.equal(manifest.scripts?.prepare, undefined);
   assert.equal(manifest.scripts?.postinstall, undefined);
   assert.equal(manifest.devDependencies, undefined);
+});
+
+test("leave projects unchanged on package installation", async () => {
+  const project = await mkdtemp(join(tmpdir(), "loom-package-"));
+  let command: ((args: string, ctx: any) => Promise<void>) | undefined;
+  const extension = await import("../extensions/loom-workers/index.ts");
+
+  try {
+    extension.default({
+      registerCommand(_name: string, options: { handler: typeof command }) { command = options.handler; },
+    } as any);
+    await command?.("", {
+      cwd: project,
+      ui: { notify() {} },
+    });
+    assert.deepEqual(await readdir(project), []);
+    assert.ok((await readdir(join(root, "skills"))).includes("loom-init"));
+  } finally {
+    await rm(project, { recursive: true, force: true });
+  }
 });
