@@ -66,6 +66,7 @@ export class RoleLane {
   private pauseReason?: "manual" | "retry" | "blocked";
   private resumeAction?: () => Promise<void> | void;
   private lockReleased = false;
+  private generation = 0;
 
   constructor(options: LaneOptions) {
     this.options = options;
@@ -79,6 +80,7 @@ export class RoleLane {
 
   start(): void {
     if (this.state !== "stopped") return;
+    this.generation++;
     this.state = "idle";
     this.startedAt = this.now();
     this.setTimer(0, () => this.pollForWork());
@@ -106,6 +108,7 @@ export class RoleLane {
       this.changed();
       return;
     }
+    this.generation++;
     const previous = this.state;
     this.pauseManually(previous === "awaiting-requeue"
       ? () => { this.state = "awaiting-requeue"; this.setTimer(0, () => this.observeAwaiting()); this.changed(); }
@@ -138,6 +141,7 @@ export class RoleLane {
 
   async stop(): Promise<void> {
     if (this.state === "stopped" && this.lockReleased) return;
+    this.generation++;
     this.state = "stopped";
     this.manualPause = false;
     this.clearTimer();
@@ -165,9 +169,11 @@ export class RoleLane {
 
   private async pollForWork(): Promise<void> {
     if (this.state === "stopped" || this.state === "paused" || this.active) return;
+    const generation = ++this.generation;
     this.state = "idle";
     try {
       const item = await this.options.board.next(this.options.role);
+      if (generation !== this.generation || this.state !== "idle" || this.active) return;
       if (item) {
         await this.launch(item);
         return;
@@ -175,12 +181,15 @@ export class RoleLane {
       this.lastOutcome = "No eligible work";
       this.setTimer(POLL_MS, () => this.pollForWork());
     } catch (error) {
-      this.degrade(error, () => this.pollForWork());
+      if (generation === this.generation && this.state !== "stopped" && this.state !== "paused") {
+        this.degrade(error, () => this.pollForWork());
+      }
     }
     this.changed();
   }
 
   private async launch(item: BoardItem): Promise<void> {
+    const generation = ++this.generation;
     this.clearTimer();
     this.current = item;
     this.observedClaim ||= item.claimed;
@@ -194,16 +203,21 @@ export class RoleLane {
         this.options.model,
         (activity) => this.options.onActivity?.(activity),
       );
-      if (this.state === "stopped") {
-        await run.abort();
-        run.dispose();
+      if (generation !== this.generation || this.state === "stopped") {
+        try {
+          await settleWithin(run.abort().catch(() => {}), this.cancelTimeoutMs);
+        } finally {
+          run.dispose();
+        }
         return;
       }
       this.active = run;
       this.setTimer(POLL_MS, () => this.observeRunning(run));
       void run.settled.then((outcome) => this.settle(run, outcome));
     } catch (error) {
-      await this.reconcile({ ok: false, error: error instanceof Error ? error.message : String(error) });
+      if (generation === this.generation && this.state !== "stopped") {
+        await this.reconcile({ ok: false, error: error instanceof Error ? error.message : String(error) });
+      }
     }
   }
 
@@ -214,12 +228,14 @@ export class RoleLane {
   }
 
   private async reconcile(outcome: WorkerOutcome): Promise<void> {
+    const generation = ++this.generation;
     this.clearTimer();
     this.lastOutcome = outcome.ok ? "Worker settled" : outcome.error ?? "Worker failed";
     const assigned = this.current;
     if (!assigned) return this.resolve();
     try {
       const observed = await this.options.board.observe(assigned);
+      if (generation !== this.generation || this.state === "stopped") return;
       if (!observed) {
         if (this.observedClaim || this.orphanedClaim) return this.pauseFor("Observed Claim became orphaned");
         return this.resolve();
@@ -239,15 +255,19 @@ export class RoleLane {
       this.setTimer(BACKOFF_MS[this.retries - 1], () => this.retryExact());
       this.changed();
     } catch (error) {
-      this.degrade(error, () => this.reconcile(outcome));
+      if (generation === this.generation && this.state !== "stopped") {
+        this.degrade(error, () => this.reconcile(outcome));
+      }
     }
   }
 
   private async retryExact(): Promise<void> {
     const assigned = this.current;
     if (!assigned || this.state === "stopped" || this.state === "paused") return;
+    const generation = ++this.generation;
     try {
       const observed = await this.options.board.observe(assigned);
+      if (generation !== this.generation || this.state === "stopped" || this.state === "paused") return;
       if (!observed) return this.observedClaim ? this.pauseFor("Observed Claim became orphaned") : this.resolve();
       this.current = observed;
       this.observedClaim ||= observed.claimed;
@@ -255,14 +275,18 @@ export class RoleLane {
       if (observed.claimed) return this.awaitRequeue();
       await this.launch(observed);
     } catch (error) {
-      this.degrade(error, () => this.retryExact());
+      if (generation === this.generation && this.state !== "stopped" && this.state !== "paused") {
+        this.degrade(error, () => this.retryExact());
+      }
     }
   }
 
   private async observeRunning(run: WorkerRun): Promise<void> {
     if (this.active !== run || !this.current) return;
+    const generation = ++this.generation;
     try {
       const observed = await this.options.board.observe(this.current);
+      if (generation !== this.generation || this.active !== run || this.state === "stopped") return;
       if (!observed) {
         this.orphanedClaim ||= this.observedClaim;
         this.lastOutcome = "Assigned Board object disappeared; waiting for Worker settlement";
@@ -274,6 +298,7 @@ export class RoleLane {
           : "Board handoff observed; waiting for Worker settlement";
       }
     } catch (error) {
+      if (generation !== this.generation || this.active !== run || this.state === "stopped") return;
       this.lastOutcome = `Observation failed: ${error instanceof Error ? error.message : String(error)}`;
     }
     if (this.active === run) this.setTimer(POLL_MS, () => this.observeRunning(run));
@@ -283,8 +308,10 @@ export class RoleLane {
   private async observeAwaiting(): Promise<void> {
     const assigned = this.current;
     if (!assigned || this.state === "stopped" || this.state === "paused" || this.active) return;
+    const generation = ++this.generation;
     try {
       const observed = await this.options.board.observe(assigned);
+      if (generation !== this.generation || this.state === "stopped" || this.state === "paused" || this.active) return;
       if (!observed) return this.pauseFor("Observed Claim became orphaned");
       this.current = observed;
       if (!isEligible(this.options.role, observed)) return this.resolve();
@@ -297,7 +324,9 @@ export class RoleLane {
       this.setTimer(POLL_MS, () => this.observeAwaiting());
       this.changed();
     } catch (error) {
-      this.degrade(error, () => this.observeAwaiting());
+      if (generation === this.generation && this.state !== "stopped" && this.state !== "paused") {
+        this.degrade(error, () => this.observeAwaiting());
+      }
     }
   }
 

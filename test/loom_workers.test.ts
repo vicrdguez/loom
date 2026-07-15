@@ -476,6 +476,42 @@ test("remain idle with no eligible work", async () => {
   assert.equal(workerStarts, 0);
 });
 
+test("stop does not launch after Board selection settles", async () => {
+  const scheduler = new FakeScheduler();
+  const selection = deferred<{
+    kind: "issue";
+    number: number;
+    title: string;
+    url: string;
+    lifecycle: "ready";
+    claimed: boolean;
+    createdAt: string;
+  }>();
+  let starts = 0;
+  const lane = new RoleLane({
+    role: "implementor",
+    board: { next: () => selection.promise, observe: async () => undefined },
+    worker: { start: async () => {
+      starts++;
+      return { sessionId: "late", settled: new Promise(() => {}), abort: async () => {}, dispose() {} };
+    } },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+
+  lane.start();
+  await scheduler.runNext();
+  await lane.stop();
+  selection.resolve({
+    kind: "issue", number: 1, title: "change", url: "u", lifecycle: "ready", claimed: false, createdAt: "1",
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(starts, 0);
+  assert.equal(lane.snapshot().state, "stopped");
+});
+
 test("classify Board state after session settlement", async () => {
   const cases = [
     ["implementor", "left", "cooldown"],
