@@ -26,7 +26,7 @@
 - [x] B23  Retry automatically after human requeue                       → behavior.md §7/4
 - [x] B24  Pause when an observed Claim becomes orphaned                 → behavior.md §7/5
 - [x] B25  Observe only the active assignment while running              → behavior.md §7/6
-- [ ] B26  Wait for settlement after eligibility changes                → behavior.md §7/7
+- [x] B26  Wait for settlement after eligibility changes                → behavior.md §7/7
 - [ ] B27  Keep the other Role operational after failure                 → behavior.md §7/8
 - [ ] B28  Apply deterministic lane controls                             → behavior.md §8/1
 - [ ] B29  Stop extension resources on parent session shutdown           → behavior.md §8/2
