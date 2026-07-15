@@ -30,7 +30,7 @@
 - [x] B27  Keep the other Role operational after failure                 → behavior.md §7/8
 - [x] B28  Apply deterministic lane controls                             → behavior.md §8/1
 - [ ] B29  Stop extension resources on parent session shutdown           → behavior.md §8/2
-- [ ] B30  Keep Worker narration out of parent model context             → behavior.md §9/1
+- [x] B30  Keep Worker narration out of parent model context             → behavior.md §9/1
 
 ## Chores
 - [ ] C1  Rebase after `add-reviewer-wip-claims` lands and verify symmetric Claims are present

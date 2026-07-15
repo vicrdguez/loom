@@ -74,9 +74,13 @@ test("leave projects unchanged on package installation", async () => {
   try {
     extension.default({
       registerCommand(_name: string, options: { handler: typeof command }) { command = options.handler; },
+      registerEntryRenderer() {},
+      appendEntry() {},
+      on() {},
     } as any);
     await command?.("", {
       cwd: project,
+      hasUI: false,
       ui: { notify() {} },
     });
     assert.deepEqual(await readdir(project), []);
@@ -807,6 +811,42 @@ test("apply deterministic lane controls", async () => {
     await lane.stop();
     assert.deepEqual([aborted, disposed, released, lane.snapshot().state], [true, true, true, "stopped"]);
   }
+});
+
+test("keep Worker narration out of parent model context", async () => {
+  const pending = deferred<void>();
+  let listener: (event: any) => void = () => {};
+  const activities: any[] = [];
+  const worker = new PiWorker({
+    projectRoot: root,
+    loadContract: async () => "contract",
+    createSession: async () => ({
+      id: "s",
+      messages: [],
+      subscribe(value) { listener = value; return () => {}; },
+      prompt: () => pending.promise,
+      abort: async () => {},
+      dispose() {},
+    }),
+  });
+  const run = await worker.start("reviewer", {
+    kind: "pr", number: 1, title: "change", url: "u", lifecycle: "review", claimed: false, createdAt: "1",
+  }, { provider: "p", model: "m", thinking: "off" }, (activity) => activities.push(activity));
+  listener({ type: "message_update", assistantMessageEvent: { type: "thinking_delta", delta: "secret" } });
+  listener({ type: "tool_execution_end", toolName: "bash", result: "raw" });
+  listener({ type: "message_end", message: { role: "assistant", content: [{ type: "text", text: "Completed summary" }] } });
+  listener({ type: "message_end", message: { role: "assistant", errorMessage: "Lifecycle failed" } });
+
+  assert.deepEqual(activities.map(({ kind, text }) => [kind, text]), [
+    ["message", "Completed summary"],
+    ["failure", "Lifecycle failed"],
+  ]);
+  const appended: any[] = [];
+  const extension = await import("../extensions/loom-workers/index.ts");
+  extension.presentActivity({ appendEntry: (...args: any[]) => appended.push(args) } as any, activities[0]);
+  assert.deepEqual(appended, [["loom-workers-activity", activities[0]]]);
+  pending.resolve();
+  await run.settled;
 });
 
 test("recover a stale Role lock", async () => {
