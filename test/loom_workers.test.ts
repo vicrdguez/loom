@@ -442,6 +442,38 @@ test("pause when an observed Claim becomes orphaned", async () => {
   assert.equal(selections, 1);
 });
 
+test("observe only the active assignment while running", async () => {
+  const scheduler = new FakeScheduler();
+  const done = deferred<{ ok: boolean }>();
+  const item = { kind: "pr" as const, number: 8, title: "change", url: "u", lifecycle: "review" as const, claimed: false, createdAt: "1" };
+  let selections = 0;
+  const observations: number[] = [];
+  let starts = 0;
+  const lane = new RoleLane({
+    role: "reviewer",
+    board: {
+      next: async () => { selections++; return item; },
+      observe: async (assigned) => { observations.push(assigned.number); return { ...item, claimed: true }; },
+    },
+    worker: { start: async () => {
+      starts++;
+      return { sessionId: "s", settled: done.promise, abort: async () => {}, dispose() {} };
+    } },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+  lane.start();
+  await scheduler.runNext();
+  await scheduler.runNext();
+
+  assert.deepEqual(observations, [8]);
+  assert.equal(selections, 1);
+  assert.equal(starts, 1);
+  assert.equal(lane.snapshot().state, "running");
+  done.resolve({ ok: true });
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));
