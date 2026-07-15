@@ -8,6 +8,7 @@ import { createPiSessionFactory, PiWorker } from "../extensions/loom-workers/pi-
 import { acquireRoleLock } from "../extensions/loom-workers/local-state.ts";
 import { GitHubBoard } from "../extensions/loom-workers/github.ts";
 import { RoleLane } from "../extensions/loom-workers/lane.ts";
+import { Coordinator } from "../extensions/loom-workers/coordinator.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -198,6 +199,31 @@ test("load standard project policy around the bundled Role contract", async () =
   assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
   assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);
   assert.match(prompt, /"number":42/);
+});
+
+test("start available Roles independently", async () => {
+  const started: string[] = [];
+  const saved: string[] = [];
+  const coordinator = new Coordinator({
+    board: { listOpen: async () => [] },
+    worker: {} as any,
+    acquire: async (role) => {
+      if (role === "reviewer") throw new Error("owned by process 99");
+      return { owner: { pid: 1 }, release: async () => {} } as any;
+    },
+    saveChoice: async (role) => { saved.push(role); },
+    createLane: (options) => ({
+      start() { started.push(options.role); },
+      snapshot: () => ({ role: options.role, state: "idle", model: options.model, retries: 0 }),
+    } as any),
+  });
+  const choice = { provider: "p", model: "m", thinking: "off" as const };
+
+  const result = await coordinator.start("both", { implementor: choice, reviewer: choice });
+  assert.deepEqual(result.started, ["implementor"]);
+  assert.match(result.failures.reviewer ?? "", /process 99/);
+  assert.deepEqual(started, ["implementor"]);
+  assert.deepEqual(saved, ["implementor"]);
 });
 
 test("list all open Board Changes", async () => {

@@ -30,7 +30,7 @@ interface WorkerStarter {
   start(role: Role, item: BoardItem, model: ModelChoice, onActivity: (activity: WorkerActivity) => void): Promise<WorkerRun>;
 }
 
-interface LaneOptions {
+export interface LaneOptions {
   role: Role;
   board: BoardReader;
   worker: WorkerStarter;
