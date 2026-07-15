@@ -41,7 +41,7 @@
 - [ ] C6  Record live Pi/GitHub and local Git-package acceptance checks
 
 ## Docs
-- [ ] D1  Update `docs/loom/project.md`, README, and installed orientation for Pi-native usage
-- [ ] D2  Create `docs/capabilities/worker-console.md`
-- [ ] D3  Update `docs/capabilities/workflow.md`
-- [ ] D4  Update `docs/capabilities/installation.md`
+- [x] D1  Update `docs/loom/project.md`, README, and installed orientation for Pi-native usage
+- [x] D2  Create `docs/capabilities/worker-console.md`
+- [x] D3  Update `docs/capabilities/workflow.md`
+- [x] D4  Update `docs/capabilities/installation.md`

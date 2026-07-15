@@ -9,7 +9,8 @@ drift); the documents are how humans and agents stay oriented.
 - `/loom-architecture` — scan read-only for architecture friction, render a temporary visual report,
   and hand the selected candidate into `/loom-explore`.
 
-**Loop** (run `/loom-init` once per project, then per change):
+**Loop** (run `/loom-init` once per project, then per change; Pi spells skill commands
+`/skill:loom-*`):
 - `/loom-explore` — grill the change into shared understanding; sharpen `CONTEXT.md`, record ADRs.
 - `/loom-propose` — cut the change branch (worktree), write the brief: `intent.md`, `behavior.md`
   (always); `plan.md`, `tasks.md` (when warranted).
@@ -23,15 +24,14 @@ drift); the documents are how humans and agents stay oriented.
 **Two topologies** (per change, no mode flag — emergent from what you run):
 - **Single-model** (default): one model + the human fills every role, handing off sequentially. Only
   rule added: `review` runs in a fresh context (a separate `/loom-review` or a spawned sub-agent).
-- **Multi-model**: distinct models fill the roles, coordinating through the **forge board** — issues,
-  PRs, and five labels: `loom:ready` (issue → implementor), `loom:wip` (additive Worker Claim),
+- **Board topology**: planner, implementor, and reviewer Roles coordinate through the **Board** —
+  issues, PRs, and five labels: `loom:ready` (issue → implementor), `loom:wip` (additive Worker Claim),
   `loom:review` (PR → reviewer), `loom:rework` (PR → implementor), `loom:done` (PR → human merges).
-  Implementors and reviewers skip claimed objects and add `wip` before work; interrupted claims remain `wip` until
-  a human requeues them. `/loom-propose` publishes on demand (push branch + open a `loom:ready` issue);
-  `/loom-implement` (the implementor worker) claims it, builds by
-  composing `loom-apply`, and opens a PR marked `loom:review`; `/loom-review` blesses or bounces. Each
-  worker processes one change per invocation and exits; the harness's scheduler re-fires it fresh. Loom
-  ships no runtime.
+  Implementors and reviewers skip claimed objects and add `wip` before work; interrupted Claims remain
+  `wip` until a human requeues them. `/loom-propose` publishes on demand; `/loom-implement` builds and
+  presents; `/loom-review` blesses or bounces. Every Worker gets a fresh context. Pi's `/loom-workers`
+  console schedules independent implementor and reviewer Role lanes; Role skills retain all Board
+  mutations.
 
 **Foundational skills** (composed by the loop, or run standalone — e.g. to ground a brownfield repo):
 `/loom-domain` (sharpen the glossary + ADRs) and `/loom-design` (deep, testable module shapes).
