@@ -612,7 +612,10 @@ test("pause after three pre-Claim failures", async () => {
     runs[attempt].resolve({ ok: false });
     await new Promise((resolve) => setImmediate(resolve));
     await new Promise((resolve) => setImmediate(resolve));
-    if (attempt < 2) await scheduler.runNext();
+    if (attempt < 2) {
+      assert.equal((lane.snapshot().nextPoll ?? 0) - scheduler.now, [5_000, 30_000][attempt]);
+      await scheduler.runNext();
+    }
   }
   assert.equal(starts, 3);
   assert.equal(lane.snapshot().retries, 3);

@@ -74,8 +74,8 @@ session isolation before building the full lane loop.
 - A running lane observes only its exact item every 60 seconds and never launches another. Eligibility
   changes update status but do not abort; session settlement remains the lifecycle boundary.
 - Timing is fixed but injected in tests: immediate first poll, 60-second idle/observation/Board-error
-  polling, 5-second successful cooldown, pre-Claim backoffs of 5 seconds, 30 seconds, and 2 minutes,
-  then pause. No silence/runtime timeout.
+  polling, 5-second successful cooldown, pre-Claim backoffs of 5 seconds and 30 seconds, then pause
+  after the third failed Worker. No silence/runtime timeout.
 - `pause` lets an active Worker finish; `resume` clears only manual pause; `retry` resets a pre-Claim
   failure pause but cannot bypass `wip`; `stop` aborts, waits at most five seconds, disposes, stops the
   loop, and releases the Role lock.
