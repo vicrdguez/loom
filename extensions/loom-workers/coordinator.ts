@@ -55,6 +55,7 @@ function duration(milliseconds: number): string {
 export class Coordinator {
   private readonly options: CoordinatorOptions;
   private readonly lanes = new Map<Role, RoleLane>();
+  private shutDown = false;
 
   constructor(options: CoordinatorOptions) {
     this.options = options;
@@ -69,6 +70,10 @@ export class Coordinator {
 
     for (const role of roles) {
       const choice = choices[role];
+      if (this.shutDown) {
+        result.failures[role] = "Coordinator is shut down";
+        continue;
+      }
       if (!choice) {
         result.failures[role] = `No model selected for ${role}`;
         continue;
@@ -80,6 +85,7 @@ export class Coordinator {
       let lock: RoleLock | undefined;
       try {
         lock = await this.options.acquire(role);
+        if (this.shutDown) throw new Error("Coordinator is shut down");
         const lane = (this.options.createLane ?? ((laneOptions) => new RoleLane(laneOptions)))({
           role,
           board: this.options.board as Required<Pick<Board, "next" | "observe">>,
@@ -148,6 +154,7 @@ export class Coordinator {
   }
 
   async shutdown(): Promise<void> {
+    this.shutDown = true;
     await Promise.all(Array.from(this.lanes.keys(), (role) => this.stop(role)));
   }
 }

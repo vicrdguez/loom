@@ -1007,6 +1007,36 @@ test("apply deterministic lane controls", async () => {
   }
 });
 
+test("parent shutdown cancels an in-flight coordinator start", async () => {
+  const acquired = deferred<any>();
+  let laneStarted = false;
+  let lockReleased = false;
+  const coordinator = new Coordinator({
+    board: { listOpen: async () => [] },
+    worker: {} as any,
+    acquire: () => acquired.promise,
+    saveChoice: async () => {},
+    createLane: (options) => ({
+      start() { laneStarted = true; },
+      snapshot: () => ({ role: options.role, state: "idle", model: options.model, retries: 0 }),
+    } as any),
+  });
+  const choice = { provider: "p", model: "m", thinking: "off" as const };
+
+  const starting = coordinator.start("implementor", { implementor: choice });
+  await coordinator.shutdown();
+  acquired.resolve({ owner: { pid: 1 }, release: async () => { lockReleased = true; } });
+  const result = await starting;
+
+  assert.deepEqual(result.started, []);
+  assert.equal(laneStarted, false);
+  assert.equal(lockReleased, true);
+  assert.deepEqual(coordinator.status(), [
+    { role: "implementor", state: "stopped" },
+    { role: "reviewer", state: "stopped" },
+  ]);
+});
+
 test("stop extension resources on parent session shutdown", async () => {
   const handlers: Record<string, () => Promise<void>> = {};
   const scheduler = new FakeScheduler();
