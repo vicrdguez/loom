@@ -139,11 +139,16 @@ alters a Change, Board object, or repository history.
 _Avoid_: Prompt, chat command
 
 **Board**:
-The forge's issues, PRs, and labels used as the asynchronous coordination medium between workers in
-the Board topology. Four labels carry a change's lifecycle: `loom:ready` (issue awaiting an
-implementor), `loom:review` (PR awaiting a reviewer), `loom:rework` (PR bounced back), `loom:done`
-(PR awaiting the human's merge).
+The forge's issues, PRs, and five labels used as the asynchronous coordination medium between workers
+in the Board topology. `loom:ready`, `loom:review`, `loom:rework`, and `loom:done` carry a Change's
+lifecycle; `loom:wip` is an additive Claim marker.
 _Avoid_: Queue, tracker
+
+**Claim**:
+Durable Board evidence that an implementor has taken responsibility for a Change issue or rework PR.
+It combines `loom:wip` with the object's existing `loom:ready` or `loom:rework` lifecycle label and
+remains until successful handoff or explicit human requeue.
+_Avoid_: Lock, lease, assignment
 
 **Change issue**:
 The forge issue that publishes a proposed change to the board so an implementor worker can claim it;

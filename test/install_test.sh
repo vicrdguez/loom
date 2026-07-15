@@ -51,13 +51,13 @@ assert_dir_empty() {
 assert_contains() {
   file=$1
   text=$2
-  grep -F "$text" "$file" >/dev/null 2>&1 || fail "expected $file to contain: $text"
+  grep -F -- "$text" "$file" >/dev/null 2>&1 || fail "expected $file to contain: $text"
 }
 
 assert_not_contains() {
   file=$1
   text=$2
-  if grep -F "$text" "$file" >/dev/null 2>&1; then
+  if grep -F -- "$text" "$file" >/dev/null 2>&1; then
     fail "expected $file not to contain: $text"
   fi
 }
@@ -92,6 +92,22 @@ make_project() {
   dir="$TMP_ROOT/project-$1"
   mkdir -p "$dir"
   printf '%s\n' "$dir"
+}
+
+ensure_board_install() {
+  if [ -z "${BOARD_PROJECT:-}" ]; then
+    BOARD_PROJECT=$(make_project board-instructions)
+    BOARD_HOME=$(make_home board-instructions)
+    run_cmd env HOME="$BOARD_HOME" "$SH_BIN" "$ROOT/install.sh" \
+      --tools codex \
+      --project "$BOARD_PROJECT"
+    assert_status 0
+  fi
+}
+
+board_file() {
+  ensure_board_install
+  printf '%s/.codex/skills/%s\n' "$BOARD_PROJECT" "$1"
 }
 
 make_home() {
@@ -230,6 +246,148 @@ SH
   case " $downloaders " in *" curl "*) cp "$dir/fetch" "$dir/curl"; chmod +x "$dir/curl" ;; esac
   case " $downloaders " in *" wget "*) cp "$dir/fetch" "$dir/wget"; chmod +x "$dir/wget" ;; esac
   printf '%s:%s\n' "$dir" "$(make_system_bin "$name")"
+}
+
+test_provision_wip_label_on_every_supported_forge() {
+  for forge in github gitlab codeberg; do
+    file=$(board_file "loom-implement/reference/$forge.md")
+    assert_contains "$file" "five labels"
+    assert_contains "$file" "loom:wip"
+  done
+  assert_contains "$(board_file loom-propose/SKILL.md)" "five labels"
+}
+
+test_filter_claims_before_selecting_one_item() {
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" "--search \"-label:loom:wip sort:created-asc\" --limit 1"
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" '--not-label "loom:wip"'
+  assert_contains "$gitlab" '--sort asc --per-page 1'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'discard every row whose labels contain `loom:wip`, then choose the'
+  assert_contains "$codeberg" 'Filtering must happen before selection'
+}
+
+test_prefer_eligible_rework_over_ready_work() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'Prefer an eligible `loom:rework` bounce'
+  assert_contains "$implement" 'before starting an eligible `loom:ready` issue'
+}
+
+test_add_advisory_claim_without_replacing_lifecycle() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'add `loom:wip` **without removing** its `loom:ready` or'
+  for forge in github gitlab codeberg; do
+    assert_contains "$(board_file "loom-implement/reference/$forge.md")" 'Add `loom:wip` without removing the lifecycle label'
+  done
+}
+
+test_fail_closed_when_claim_is_unsuccessful_or_ambiguous() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'only after that forge operation succeeds'
+  assert_contains "$implement" 'fails or its outcome is ambiguous'
+  assert_contains "$implement" 'without fetching the branch, creating a worktree, or touching the Change'
+}
+
+test_retain_an_interrupted_claim() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'fails or is interrupted, leave `loom:wip` in place'
+  assert_contains "$implement" 'workers never auto-expire or'
+  assert_contains "$implement" 'silently release a Claim'
+}
+
+test_human_requeues_interrupted_implementation() {
+  for forge in github gitlab codeberg; do
+    file=$(board_file "loom-implement/reference/$forge.md")
+    assert_contains "$file" 'human requeues'
+    assert_contains "$file" 'removing only `loom:wip`'
+  done
+}
+
+test_release_ready_claim_after_opening_review() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'Only after the issue is closed, remove `loom:wip`'
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" 'Open the review PR, close the ready issue, and only then remove its Claim'
+}
+
+test_release_rework_claim_by_handing_to_review() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" '`loom:rework + loom:wip` → `loom:review`'
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" '--remove-label "loom:rework,loom:wip" --add-label "loom:review"'
+}
+
+test_report_partial_handoff_as_incomplete() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'If any handoff operation fails'
+  assert_contains "$implement" 'report the exact incomplete Board state'
+  assert_contains "$implement" 'Do not present'
+  assert_contains "$implement" 'success or select another Change'
+}
+
+test_forge_command_contracts_preserve_wip_claims() {
+  github=$(board_file loom-implement/reference/github.md)
+  assert_contains "$github" '"loom:wip|An implementor is actively working this change|fbca04"'
+  assert_contains "$github" 'gh issue edit <issue-number> --repo "<owner>/<repo>" --add-label "loom:wip"'
+  assert_contains "$github" 'gh pr edit <pr-number> --repo "<owner>/<repo>" --add-label "loom:wip"'
+  assert_contains "$github" 'gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"'
+  assert_contains "$github" 'gh pr edit <pr-number> --repo "<owner>/<repo>" --remove-label "loom:wip"'
+  assert_contains "$github" 'gh pr create --repo "<owner>/<repo>" --label "loom:review" \
+  --title "<title>" --body-file body.md --base main --head "<slug>"
+gh issue close <issue-number> --repo "<owner>/<repo>" \
+  --comment "Built and opened for review in #<pr-number>."
+gh issue edit <issue-number> --repo "<owner>/<repo>" --remove-label "loom:wip"'
+  assert_contains "$github" '--remove-label "loom:rework,loom:wip" --add-label "loom:review"'
+
+  gitlab=$(board_file loom-implement/reference/gitlab.md)
+  assert_contains "$gitlab" 'for name in loom:ready loom:wip loom:review loom:rework loom:done; do'
+  assert_contains "$gitlab" 'glab issue update <issue-iid> --label "loom:wip"'
+  assert_contains "$gitlab" 'glab mr update <mr-iid> --label "loom:wip"'
+  assert_contains "$gitlab" 'glab issue update <issue-iid> --unlabel "loom:wip"'
+  assert_contains "$gitlab" 'glab mr update <mr-iid> --unlabel "loom:wip"'
+  assert_contains "$gitlab" 'glab mr create --source-branch "<slug>" --target-branch main \
+  --title "<title>" --description "$(cat body.md)" --label "loom:review"
+glab issue close <issue-iid>
+glab issue update <issue-iid> --unlabel "loom:wip"'
+  assert_contains "$gitlab" '--unlabel "loom:rework,loom:wip" --label "loom:review"'
+
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'for name in loom:ready loom:wip loom:review loom:rework loom:done; do'
+  assert_contains "$codeberg" '-X POST -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json"'
+  assert_contains "$codeberg" '-d "{\"labels\":[$wip_id]}"'
+  assert_contains "$codeberg" '-X DELETE -H "Authorization: token $FORGEJO_TOKEN"'
+  assert_contains "$codeberg" '/labels/$wip_id'
+  assert_contains "$codeberg" 'tea pr create --head "<slug>" --base main --title "<title>" --description "$(cat body.md)"
+tea issue edit <index> --add-labels "loom:review"        # if the PR create didn'"'"'t take labels
+tea issue close <issue-index>
+curl -fsSL -X DELETE -H "Authorization: token $FORGEJO_TOKEN" \
+  "https://codeberg.org/api/v1/repos/<owner>/<repo>/issues/<issue-index>/labels/$wip_id"'
+  assert_contains "$codeberg" '-X PUT -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json"'
+  assert_contains "$codeberg" '-d "{\"labels\":[$review_id]}"'
+}
+
+test_codeberg_uses_numeric_label_ids() {
+  codeberg=$(board_file loom-implement/reference/codeberg.md)
+  assert_contains "$codeberg" 'resolve_label_id'
+  assert_contains "$codeberg" '-d "{\"labels\":[$wip_id]}"'
+  assert_contains "$codeberg" '-d "{\"labels\":[$review_id]}"'
+  assert_contains "$codeberg" '/labels/$wip_id'
+  assert_not_contains "$codeberg" "-d '{\"labels\":[\"loom:wip\"]}'"
+}
+
+test_explain_remaining_simultaneous_selection_race() {
+  implement=$(board_file loom-implement/SKILL.md)
+  assert_contains "$implement" 'advisory Claim, not an atomic ownership lock'
+  assert_contains "$implement" 'two workers that select the same object'
+  assert_contains "$implement" 'before either Claim is visible can still race'
+  assert_contains "$ROOT/README.md" 'The board and its five labels'
+  assert_contains "$ROOT/README.md" 'not an atomic lock'
+  assert_contains "$ROOT/AGENTS.tmpl.md" 'five labels:'
+  assert_contains "$ROOT/AGENTS.tmpl.md" 'interrupted claims remain `wip` until'
+  assert_contains "$ROOT/AGENTS.tmpl.md" 'a human requeues them'
 }
 
 test_checkout_install_includes_architecture_review_skill() {
@@ -634,6 +792,32 @@ test_fail_clearly_when_no_downloader_is_available() {
   assert_not_exists "$home/.codex"
 }
 
+run_test "Provision the WIP label on every supported forge" \
+  test_provision_wip_label_on_every_supported_forge
+run_test "Filter Claims before selecting one item" \
+  test_filter_claims_before_selecting_one_item
+run_test "Prefer eligible rework over eligible ready work" \
+  test_prefer_eligible_rework_over_ready_work
+run_test "Add an advisory Claim without replacing lifecycle" \
+  test_add_advisory_claim_without_replacing_lifecycle
+run_test "Fail closed when Claim outcome is unsuccessful or ambiguous" \
+  test_fail_closed_when_claim_is_unsuccessful_or_ambiguous
+run_test "Retain an interrupted Claim" \
+  test_retain_an_interrupted_claim
+run_test "Human requeues interrupted implementation" \
+  test_human_requeues_interrupted_implementation
+run_test "Release a ready-issue Claim after opening review" \
+  test_release_ready_claim_after_opening_review
+run_test "Release a rework Claim by handing the PR to review" \
+  test_release_rework_claim_by_handing_to_review
+run_test "Report a partial handoff as incomplete" \
+  test_report_partial_handoff_as_incomplete
+run_test "Preserve WIP claims in every forge command contract" \
+  test_forge_command_contracts_preserve_wip_claims
+run_test "Resolve Codeberg label names to numeric IDs" \
+  test_codeberg_uses_numeric_label_ids
+run_test "Explain the remaining simultaneous-selection race" \
+  test_explain_remaining_simultaneous_selection_race
 run_test "Checkout install includes the architecture review skill" \
   test_checkout_install_includes_architecture_review_skill
 run_test "Install the latest non-prerelease release" \
