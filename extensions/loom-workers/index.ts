@@ -13,6 +13,17 @@ export function presentActivity(pi: Pick<ExtensionAPI, "appendEntry">, activity:
   pi.appendEntry("loom-workers-activity", activity);
 }
 
+export async function shutdownConsole(
+  coordinator: Pick<Coordinator, "shutdown"> | undefined,
+  context: any,
+): Promise<void> {
+  await coordinator?.shutdown();
+  if (context?.hasUI) {
+    context.ui.setStatus("loom-workers", undefined);
+    context.ui.setWidget("loom-workers", undefined);
+  }
+}
+
 export default function loomWorkers(pi: ExtensionAPI) {
   let coordinator: Coordinator | undefined;
   let activeContext: any;
@@ -108,12 +119,8 @@ export default function loomWorkers(pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", async () => {
-    await coordinator?.shutdown();
+    await shutdownConsole(coordinator, activeContext);
     coordinator = undefined;
-    if (activeContext?.hasUI) {
-      activeContext.ui.setStatus("loom-workers", undefined);
-      activeContext.ui.setWidget("loom-workers", undefined);
-    }
   });
 }
 

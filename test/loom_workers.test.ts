@@ -813,6 +813,29 @@ test("apply deterministic lane controls", async () => {
   }
 });
 
+test("stop extension resources on parent session shutdown", async () => {
+  const handlers: Record<string, () => Promise<void>> = {};
+  const extension = await import("../extensions/loom-workers/index.ts");
+  extension.default({
+    registerCommand() {},
+    registerEntryRenderer() {},
+    on(name: string, handler: () => Promise<void>) { handlers[name] = handler; },
+  } as any);
+  assert.equal(typeof handlers.session_shutdown, "function");
+
+  const cleared: string[] = [];
+  let stopped = false;
+  await extension.shutdownConsole({ shutdown: async () => { stopped = true; } } as any, {
+    hasUI: true,
+    ui: {
+      setStatus(name: string, value: unknown) { if (value === undefined) cleared.push(`status:${name}`); },
+      setWidget(name: string, value: unknown) { if (value === undefined) cleared.push(`widget:${name}`); },
+    },
+  });
+  assert.equal(stopped, true);
+  assert.deepEqual(cleared, ["status:loom-workers", "widget:loom-workers"]);
+});
+
 test("keep Worker narration out of parent model context", async () => {
   const pending = deferred<void>();
   let listener: (event: any) => void = () => {};
