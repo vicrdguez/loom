@@ -62,18 +62,6 @@ assert_not_contains() {
   fi
 }
 
-assert_order() {
-  file=$1
-  shift
-  previous=0
-  for text in "$@"; do
-    line=$(grep -nF -- "$text" "$file" | head -1 | cut -d: -f1)
-    [ -n "$line" ] || { fail "expected $file to contain: $text"; return; }
-    [ "$line" -gt "$previous" ] || { fail "expected $text after the previous marker in $file"; return; }
-    previous=$line
-  done
-}
-
 run_cmd() {
   CURRENT_OUT="$TMP_ROOT/out.$$"
   set +e
