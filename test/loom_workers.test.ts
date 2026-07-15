@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import test from "node:test";
 import { dirname, join, resolve } from "node:path";
@@ -165,4 +165,36 @@ test("load standard project policy around the bundled Role contract", async () =
   assert.match(prompt, /^BUNDLED ROLE CONTRACT/);
   assert.match(prompt, /Process only this exact Board object; never discover or substitute another/);
   assert.match(prompt, /"number":42/);
+});
+
+test("dispose context without cleaning repository work", async () => {
+  const project = await mkdtemp(join(tmpdir(), "loom-worker-files-"));
+  const changed = join(project, "work.txt");
+  let disposed = false;
+  const worker = new PiWorker({
+    projectRoot: project,
+    loadContract: async () => "contract",
+    createSession: async () => ({
+      id: "session",
+      messages: [],
+      subscribe() { return () => {}; },
+      async prompt() {
+        await writeFile(changed, "kept", "utf8");
+        throw new Error("worker failed after writing");
+      },
+      async abort() {},
+      dispose() { disposed = true; },
+    }),
+  });
+
+  try {
+    const run = await worker.start("implementor", {
+      kind: "issue", number: 1, title: "change", url: "url", lifecycle: "ready", claimed: false, createdAt: "now",
+    }, { provider: "p", model: "m", thinking: "off" }, () => {});
+    assert.equal((await run.settled).ok, false);
+    assert.equal(await readFile(changed, "utf8"), "kept");
+    assert.equal(disposed, true);
+  } finally {
+    await rm(project, { recursive: true, force: true });
+  }
 });
