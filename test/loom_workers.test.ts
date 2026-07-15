@@ -598,6 +598,42 @@ test("wait for settlement after eligibility changes", async () => {
   assert.equal(lane.snapshot().state, "cooldown");
 });
 
+test("keep the other Role operational after failure", async () => {
+  const scheduler = new FakeScheduler();
+  const implementorItem = { kind: "issue" as const, number: 1, title: "build", url: "u1", lifecycle: "ready" as const, claimed: false, createdAt: "1" };
+  const reviewerItem = { kind: "pr" as const, number: 2, title: "review", url: "u2", lifecycle: "review" as const, claimed: false, createdAt: "2" };
+  const starts: string[] = [];
+  const coordinator = new Coordinator({
+    board: {
+      listOpen: async () => [],
+      next: async (role) => role === "implementor" ? implementorItem : reviewerItem,
+      observe: async (item) => item.kind === "issue" ? item : { ...item, lifecycle: "done" as const },
+    },
+    worker: { start: async (role: string) => {
+      starts.push(role);
+      return {
+        sessionId: role,
+        settled: Promise.resolve(role === "implementor" ? { ok: false, error: "failed" } : { ok: true }),
+        abort: async () => {},
+        dispose() {},
+      };
+    } },
+    acquire: async () => ({ owner: { pid: 1 }, release: async () => {} }),
+    saveChoice: async () => {},
+    createLane: (options) => new RoleLane({ ...options, schedule: scheduler.schedule, now: () => scheduler.now }),
+  });
+  const choice = { provider: "p", model: "m", thinking: "off" as const };
+  await coordinator.start("both", { implementor: choice, reviewer: choice });
+  await scheduler.runNext();
+  await scheduler.runNext();
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual(starts.sort(), ["implementor", "reviewer"]);
+  assert.equal(coordinator.status().find((row) => row.role === "implementor")?.state, "retry-backoff");
+  assert.equal(coordinator.status().find((row) => row.role === "reviewer")?.state, "cooldown");
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));
