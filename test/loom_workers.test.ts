@@ -415,6 +415,33 @@ test("retry automatically after human requeue", async () => {
   second.resolve({ ok: true });
 });
 
+test("pause when an observed Claim becomes orphaned", async () => {
+  const scheduler = new FakeScheduler();
+  const done = deferred<{ ok: boolean }>();
+  const item = { kind: "issue" as const, number: 1, title: "change", url: "u", lifecycle: "ready" as const, claimed: false, createdAt: "1" };
+  let observation: typeof item | undefined = { ...item, claimed: true };
+  let selections = 0;
+  const lane = new RoleLane({
+    role: "implementor",
+    board: { next: async () => { selections++; return item; }, observe: async () => observation },
+    worker: { start: async () => ({ sessionId: "s", settled: done.promise, abort: async () => {}, dispose() {} }) },
+    model: { provider: "p", model: "m", thinking: "off" },
+    schedule: scheduler.schedule,
+    now: () => scheduler.now,
+  });
+  lane.start();
+  await scheduler.runNext();
+  done.resolve({ ok: true });
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(lane.snapshot().state, "awaiting-requeue");
+  observation = undefined;
+  await scheduler.runNext();
+  assert.equal(lane.snapshot().state, "paused");
+  assert.match(lane.snapshot().lastOutcome ?? "", /orphaned/);
+  assert.equal(selections, 1);
+});
+
 test("recover a stale Role lock", async () => {
   const project = await mkdtemp(join(tmpdir(), "loom-lock-project-"));
   const agentDir = await mkdtemp(join(tmpdir(), "loom-lock-agent-"));

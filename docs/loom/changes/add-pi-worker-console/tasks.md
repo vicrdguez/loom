@@ -24,7 +24,7 @@
 - [x] B21  Let Board truth override session failure                      → behavior.md §7/2
 - [x] B22  Pause after three pre-Claim failures                          → behavior.md §7/3
 - [x] B23  Retry automatically after human requeue                       → behavior.md §7/4
-- [ ] B24  Pause when an observed Claim becomes orphaned                 → behavior.md §7/5
+- [x] B24  Pause when an observed Claim becomes orphaned                 → behavior.md §7/5
 - [ ] B25  Observe only the active assignment while running              → behavior.md §7/6
 - [ ] B26  Wait for settlement after eligibility changes                → behavior.md §7/7
 - [ ] B27  Keep the other Role operational after failure                 → behavior.md §7/8
