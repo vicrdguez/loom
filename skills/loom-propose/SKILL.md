@@ -81,8 +81,8 @@ of `docs/loom/project.md` — it needs **no new config** in the body or frontmat
 
 When asked to publish, after the brief is committed on the branch:
 
-1. **Ensure the four labels exist** on the forge (`loom:ready`, `loom:review`, `loom:rework`,
-   `loom:done`) — idempotent, a no-op when they already exist.
+1. **Ensure the five labels exist** on the forge (`loom:ready`, `loom:wip`, `loom:review`,
+   `loom:rework`, `loom:done`) — idempotent, a no-op when they already exist.
 2. **Push the change branch** to the forge.
 3. **Open a `loom:ready` issue** whose body **points to the brief on the branch** (path under
    `docs/loom/changes/<slug>/`) rather than duplicating it — a thin pointer an implementor worker

@@ -1,6 +1,6 @@
 # Board: GitHub
 
-The **board** is the forge's issues, PRs, and four labels used as the asynchronous coordination
+The **board** is the forge's issues, PRs, and five labels used as the asynchronous coordination
 medium between workers. This reference holds every board operation the workers share —
 `loom-propose` (publish), `loom-implement` (claim / present), and `loom-review` (bless / bounce) all
 link here so the commands live in one place.
@@ -12,11 +12,12 @@ token from `project.md`.** Use the repo from `project.md` in every command (`<ow
 PR create / update / draft state live in [loom-submit's github reference](../../loom-submit/reference/github.md);
 this file adds only the board layer (labels, issues, PR labels, comments) on top.
 
-## The four labels
+## The five labels
 
 | Label | Rides on | Means → next role |
 |---|---|---|
 | `loom:ready` | issue | proposed change awaiting an **implementor** |
+| `loom:wip` | issue or PR | additive marker: an **implementor is working** |
 | `loom:review` | PR | built change awaiting a **reviewer** |
 | `loom:rework` | PR | reviewer bounced it back to the **implementor** |
 | `loom:done` | PR | passed review, awaiting the **human's merge** |
@@ -24,7 +25,7 @@ this file adds only the board layer (labels, issues, PR labels, comments) on top
 Exactly one board object is active per change: an open `loom:ready` issue **or** a PR — never both.
 The implementor closes the issue when it opens the PR.
 
-## Ensure the four labels exist (idempotent)
+## Ensure the five labels exist (idempotent)
 
 Run before the first publish. `gh label create` fails if the label already exists, so guard with
 `--force` (which upserts) or ignore the error:
@@ -32,6 +33,7 @@ Run before the first publish. `gh label create` fails if the label already exist
 ```sh
 for spec in \
   "loom:ready|Proposed change awaiting an implementor|0e8a16" \
+  "loom:wip|An implementor is actively working this change|fbca04" \
   "loom:review|Built change awaiting a reviewer|1d76db" \
   "loom:rework|Reviewer bounced it back to the implementor|d93f0b" \
   "loom:done|Passed review, awaiting the human merge|5319e7"; do

@@ -1,6 +1,6 @@
 # Board: Codeberg / Forgejo / Gitea
 
-The **board** is issues, PRs, and four labels used to coordinate workers asynchronously. All three
+The **board** is issues, PRs, and five labels used to coordinate workers asynchronously. All three
 workers link here for the board operations. PR create / update / `WIP:` draft state live in
 [loom-submit's codeberg reference](../../loom-submit/reference/codeberg.md); this file adds the board
 layer.
@@ -11,20 +11,20 @@ and issue edits, so several board operations use the Forgejo API with the token 
 (`$FORGEJO_TOKEN` below — substitute the var named in `project.md`). For a self-hosted instance,
 `project.md`'s host is the instance URL; replace `codeberg.org` below.
 
-## The four labels
+## The five labels
 
-`loom:ready` (issue → implementor) · `loom:review` (PR → reviewer) · `loom:rework` (PR →
+`loom:ready` (issue → implementor) · `loom:wip` (additive implementor claim) · `loom:review` (PR → reviewer) · `loom:rework` (PR →
 implementor) · `loom:done` (PR → human merges). One active board object per change (issue XOR PR);
 the implementor closes the issue when it opens the PR.
 
-## Ensure the four labels exist (idempotent)
+## Ensure the five labels exist (idempotent)
 
 List first, create only the missing ones (Forgejo has no upsert):
 
 ```sh
 existing=$(curl -fsSL -H "Authorization: token $FORGEJO_TOKEN" \
   "https://codeberg.org/api/v1/repos/<owner>/<repo>/labels" | grep -o '"name":"[^"]*"')
-for name in loom:ready loom:review loom:rework loom:done; do
+for name in loom:ready loom:wip loom:review loom:rework loom:done; do
   printf '%s' "$existing" | grep -q "\"name\":\"$name\"" && continue
   curl -fsSL -X POST -H "Authorization: token $FORGEJO_TOKEN" -H "Content-Type: application/json" \
     "https://codeberg.org/api/v1/repos/<owner>/<repo>/labels" \

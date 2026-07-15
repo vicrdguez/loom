@@ -94,6 +94,22 @@ make_project() {
   printf '%s\n' "$dir"
 }
 
+ensure_board_install() {
+  if [ -z "${BOARD_PROJECT:-}" ]; then
+    BOARD_PROJECT=$(make_project board-instructions)
+    BOARD_HOME=$(make_home board-instructions)
+    run_cmd env HOME="$BOARD_HOME" "$SH_BIN" "$ROOT/install.sh" \
+      --tools codex \
+      --project "$BOARD_PROJECT"
+    assert_status 0
+  fi
+}
+
+board_file() {
+  ensure_board_install
+  printf '%s/.codex/skills/%s\n' "$BOARD_PROJECT" "$1"
+}
+
 make_home() {
   dir="$TMP_ROOT/home-$1"
   mkdir -p "$dir"
@@ -230,6 +246,15 @@ SH
   case " $downloaders " in *" curl "*) cp "$dir/fetch" "$dir/curl"; chmod +x "$dir/curl" ;; esac
   case " $downloaders " in *" wget "*) cp "$dir/fetch" "$dir/wget"; chmod +x "$dir/wget" ;; esac
   printf '%s:%s\n' "$dir" "$(make_system_bin "$name")"
+}
+
+test_provision_wip_label_on_every_supported_forge() {
+  for forge in github gitlab codeberg; do
+    file=$(board_file "loom-implement/reference/$forge.md")
+    assert_contains "$file" "five labels"
+    assert_contains "$file" "loom:wip"
+  done
+  assert_contains "$(board_file loom-propose/SKILL.md)" "five labels"
 }
 
 test_checkout_install_includes_architecture_review_skill() {
@@ -634,6 +659,8 @@ test_fail_clearly_when_no_downloader_is_available() {
   assert_not_exists "$home/.codex"
 }
 
+run_test "Provision the WIP label on every supported forge" \
+  test_provision_wip_label_on_every_supported_forge
 run_test "Checkout install includes the architecture review skill" \
   test_checkout_install_includes_architecture_review_skill
 run_test "Install the latest non-prerelease release" \
